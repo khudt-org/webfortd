@@ -1036,8 +1036,8 @@ VERCEL_URL=
 KB의 사업 가치·거버넌스·운영 측면은 다음 문서를 참조:
 
 ```
-~/Library/CloudStorage/GoogleDrive-hudt0715@gmail.com/My Drive/
-  └── 장교조 업무 공유 폴더/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/
+~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Shared drives/
+  └── 장교조 공유 드라이브/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/
       └── [과제 5[ 정보 지원 웹페이지 개발 및 운영/1. 자문 메모/
           └── 260514_KB설계_사업측면.md
 ```

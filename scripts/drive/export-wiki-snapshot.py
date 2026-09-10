@@ -13,7 +13,7 @@ import shutil, csv, sys
 import os, re, glob
 import yaml
 REPO=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ADV=os.path.expanduser("~/Library/CloudStorage/GoogleDrive-hudt0715@gmail.com/My Drive/장교조 업무 공유 폴더/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/[과제 5[ 정보 지원 웹페이지 개발 및 운영")
+ADV=os.path.expanduser("~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Shared drives/장교조 공유 드라이브/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/[과제 5[ 정보 지원 웹페이지 개발 및 운영")
 EDIT=os.path.join(ADV,"6. 콘텐츠 편집")
 WIKI=os.path.join(EDIT,"3. 위키 문서")
 REVIEW=os.path.join(EDIT,"4. 위키 문서 검수 (지금 할 일)")

@@ -2,7 +2,7 @@
 
 > **목적**: 자동 검증(axe-core)이 못 잡는 *실제 사용 경험*을 위원장이 iPhone Safari + VoiceOver로 10분 동안 점검.
 > **시점**: Phase 4 M3 PR B 머지 + production deploy 검증 직후.
-> **결과 보관**: 자유 형식 메모 → `~/Library/CloudStorage/GoogleDrive-hudt0715@gmail.com/My Drive/장교조 업무 공유 폴더/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/[과제 5[ 정보 지원 웹페이지 개발 및 운영/`
+> **결과 보관**: 자유 형식 메모 → `~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Shared drives/장교조 공유 드라이브/17. 교육부 및 교육청 등 정책연구/2026년 교육부 정책연구/[과제 5[ 정보 지원 웹페이지 개발 및 운영/`
 
 ---
 
