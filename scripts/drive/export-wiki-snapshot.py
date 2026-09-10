@@ -9,6 +9,7 @@ DB·임베딩과 무관한 파일 복사이므로 `content/.embed-paused` 상태
   python3 scripts/drive/export-wiki-snapshot.py --dry-run
 """
 import argparse
+import unicodedata
 import shutil, csv, sys
 import os, re, glob
 import yaml
@@ -69,7 +70,9 @@ def main():
     os.makedirs(OLD)
     moved=0
     for name in os.listdir(WIKI):
-        if name.startswith("이전 버전") or name.startswith("."): continue
+        # Google Drive(macOS)는 파일명을 NFD로 돌려주므로 NFC로 맞춰 비교한다(안 맞추면 구 「이전 버전」 폴더까지 새 보존 폴더 안으로 들어간다 — 2026-09-11 실측)
+        nfc = unicodedata.normalize("NFC", name)
+        if nfc.startswith("이전 버전") or name.startswith(".") or nfc == unicodedata.normalize("NFC", args.keep_as): continue
         shutil.move(os.path.join(WIKI,name), os.path.join(OLD,name)); moved+=1
     print("moved to old:",moved, "old md count:",sum(len(f) for _,_,f in os.walk(OLD)))
     for d in docs.values():

@@ -29,19 +29,33 @@ case "$KEY" in
     PDF="$PDFD/2023 장애인교원 인사관리 안내서.pdf"
     OUT='2023 장애인교원 인사관리안내서(단면)_fused_v4_hwpxlocal+hwpxenrich+pdftotext.md'
     DOC='2023 인사관리 안내서'
-    HEADING_RX="$ROMAN_H1;;^<부록\d+> :2;;^\[안내서 개요\]$:1;;^\d{1,2}\) :3;;^\(\d{1,2}\) :4;;^□ :+1"
+    # 부록3의 「1.~4.」 평문 절을 3수준으로 올리고 그 아래 「1)~5)」를 4수준으로(2차 검수 28번: 상위 제목 누락)
+    HEADING_RX="$ROMAN_H1;;^<부록\d+> :2;;^\[안내서 개요\]$:1;;^[1-4]\. (시·도교육청 장애인교원 업무|장애인교원 지원 관련 유관기관|교원단체|편의지원 유형별 관련 기관):3;;^\d{1,2}\) :3;;^\(\d{1,2}\) :4;;^□ :+1"
     DROP_RX='^P∙A∙R∙T$|^:: .*안내서(\(안\))?$'
     EXTRA_POST='' ;;
   *) echo "unknown key $KEY"; exit 2 ;;
 esac
 
-hwpx-tomd "../$KEY.hwpx" --cell-br --merge-fill -q --image-dir "img_$KEY" -o "${KEY}_raw.md"
+hwpx-tomd "../$KEY.hwpx" --cell-br --merge-fill-vertical --prune-empty -q --image-dir "img_$KEY" -o "${KEY}_raw.md"
 python3 "$S/hwpx_enrich.py" --hwpx "../$KEY.hwpx" --md "${KEY}_raw.md" --pdf "$PDF" \
   --heading "머-우:1" --title-table '^\d{1,2}$:2' --heading-regex "$HEADING_RX" \
   --part-title-style 간지제목 --part-title-level 2 \
   --drop-style '간지번호,장숫자,머리말' --drop-regex "$DROP_RX" \
-  --drop-table-regex '^[IⅠⅡⅢⅣⅤ]$' --mark-color NONE \
+  --drop-table-regex '^[IⅠⅡⅢⅣⅤ]$' --mark-color NONE --page-comment-every --italic \
   --out "${KEY}_enriched.md" --report "${KEY}_enrich_report.json" 2>&1 | (grep -v 'Syntax Warning' || true)
+# 인사관리 부록3: 「4. 편의지원 유형별 …」(3수준) 아래 「1)~5)」는 한 수준 내린다(본문의 「1) 인적지원」과 구분)
+if [ "$KEY" = hr ]; then python3 - "${KEY}_enriched.md" <<'PYIN'
+import sys, re
+p = sys.argv[1]; lines = open(p, encoding="utf-8").read().split("\n")
+start = next(i for i, l in enumerate(lines) if l.startswith("## <부록3>"))
+n = 0
+for i in range(start, len(lines)):
+    if lines[i].startswith("## ") and i > start: break
+    if re.match(r"^### \d\) ", lines[i]): lines[i] = "#" + lines[i]; n += 1
+assert n == 5, f"부록3 하위 절 {n}건(5 기대)"
+open(p, "w", encoding="utf-8").write("\n".join(lines))
+PYIN
+fi
 python3 "$ROOT/scripts/source-v4/postprocess-hybrid.py" --in "${KEY}_enriched.md" --out "${KEY}_post0.md" \
   --report "${KEY}_post_report.json" --image-alt "@$ROOT/scripts/source-v4/alts/$KEY.json" $EXTRA_POST
 python3 - "${KEY}_post_report.json" <<'PY'
@@ -61,7 +75,9 @@ fi
 if [ "$KEY" = staff ]; then python3 "$ROOT/scripts/source-v4/fill-photo-cells.py" staff_post.md; fi
 # 수정 목록 적용(드라이브 "6. 콘텐츠 편집/2. 마크다운 정본/정본 수정 목록.csv"와 동일본을 ../../_work에 둔다)
 python3 "$S/apply_corrections.py" --csv '../../_work/정본 수정 목록.csv' --doc "$DOC" \
-  --in "${KEY}_post.md" --out "$OUT" --pdf "$PDF" 2>&1 | (grep -v 'Syntax Warning' || true)
+  --in "${KEY}_post.md" --out "${KEY}_corrected.md" --pdf "$PDF" 2>&1 | (grep -v 'Syntax Warning' || true)
+# 문단 사이 빈 줄·PUA 글리프 정규화(4종 공통 마지막 단계)
+python3 "$ROOT/scripts/source-v4/normalize-paragraphs.py" --in "${KEY}_corrected.md" --out "$OUT"
 cp "$OUT" "$ROOT/data/source-md/"
 pdftotext -layout "$PDF" "${KEY}_pdf.txt" 2>/dev/null
 echo "== PDF 대조"; python3 "$ROOT/scripts/source-v4/compare-md-pdf.py" "$OUT" "${KEY}_pdf.txt" --top 40

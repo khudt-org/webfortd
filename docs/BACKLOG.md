@@ -32,12 +32,11 @@
 - C3 ~~이미지 매핑 검수 큐 79건~~ → 폐기(2026-08-29): v3 LLM alt 기반 매핑은 2층 v4가 그림을 전사·대체텍스트로 흡수해 실체가 사라짐. 자산은 `content/_archive-v3/`에 보존, 새 매핑은 alt 해시 키로 `image:template`부터 시작(현재 마커 4건)
 - C4 `reviewed_by: ["1차 검토(김헌용)"]` placeholder를 정밀 검수 시 실제 reviewer로 교체(점진)
 - C6 지원인력 안내자료 부록2 기기 사진 12장 대체텍스트: v4는 `(사진: 기기명)` 자리표시(표 안 이미지라 HWPX 추출 불가). v3 LLM alt 11건 이식 또는 `generate_alt_text.py` 생성 — 3층 단계에서 처리
-- C11 `apply_corrections.py` 쪽 범위 한정(docparse 스킬 개정) 뒤 2023 최종보고서 재빌드가 깨짐: 부록 구간(p.403~)에 쪽 주석이 없어 「원본 쪽」이 419·436 등인 기존 4행(스레기통·찾아다니녀야·기자제·연구원 연락처)이 「지정 쪽에 원문 없음」으로 종료된다(2026-08-30 실측, 「제목 승격」 10행은 직접 치환으로 적용). `build-2023-report.sh` 재실행 전에 부록 쪽 주석 보강(C12) 또는 스크립트의 범위 밖 fallback 중 하나가 필요
-- C12 부록2·3(델파이 조사지) 구간에 쪽 주석이 p.403·p.467 하나씩뿐이라 학교급 8건 모두 `source_page`가 403/467로 고정된다. 실제 표지 쪽(pdf_pages.json 대조): 1차 초등 403·중 419·고 436·특수 452 / 2차 초등 467·중 482·고 498·특수 513. C10과 함께 처리
-- C9 **일괄 공개·임베딩 재개**(2차 검증 마감 9/6, 공개 여부는 검토 결과에 따른 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → 야간 워크플로(또는 workflow_dispatch)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. **재개 전 필수 3건**: ① `scripts/lib/chunker.ts`가 `## 관련 페이지` 블록을 빼고 `[[slug|제목]]`을 표시명으로 치환(현재는 링크 구문이 그대로 임베딩됨, 리뷰 지적 2026-08-29) ② **구 v3 `documents` 행은 sync가 지우지 않는다** — `upsertDocuments`가 `onConflict: 'slug'` upsert라 주소가 바뀐 구 행이 published 상태로 남는다(delete-then-insert는 `wiki_backlinks` 전용, `sync-content-to-db.ts:178`·`:264`). 고아 행 정리 단계를 따로 넣을 것 ③ `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 376건)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
+- C9 **일괄 공개·임베딩 재개**(2차 검수 반영 재생성 9/11 완료, 3차 검수 9/14~16 → 수행사 전달 9/21 뒤 webfortd 공개는 별건 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → 야간 워크플로(또는 workflow_dispatch)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. **재개 전 필수 3건**: ① `scripts/lib/chunker.ts`가 `## 관련 페이지` 블록을 빼고 `[[slug|제목]]`을 표시명으로 치환(현재는 링크 구문이 그대로 임베딩됨, 리뷰 지적 2026-08-29) ② **구 v3 `documents` 행은 sync가 지우지 않는다** — `upsertDocuments`가 `onConflict: 'slug'` upsert라 주소가 바뀐 구 행이 published 상태로 남는다(delete-then-insert는 `wiki_backlinks` 전용, `sync-content-to-db.ts:178`·`:264`). 고아 행 정리 단계를 따로 넣을 것 ③ `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 367건 = 4종 358 + FAQ 9)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
+- C14 법령 최신화(2차 검수 47번: 장애인차별금지법 2025-03-18 개정 제4조 제1항 제7호 신설 등)는 방침대로 내년 갱신. 정본 수정 목록 유형 「법령 갱신」에 기록
+- C15 3층 축(폴더) 이동 54건(2026-09-11 장애유형 판정 변화): URL이 `/{axis}/{slug}`라 공개 뒤에 같은 일이 생기면 구 주소 리다이렉트가 필요하다. 공개 전(C9)에 축 판정을 확정하거나 slug 단독 라우트를 검토
 - C13 홈 메타 설명(`src/app/(wiki)/page.tsx` metadata)이 「535개 정책·법령·사례·보조공학 페이지」로 v3 시점 수치를 말한다 — 현재 공개 건수는 50(단체협약 49 + resources 1)이라 검색엔진·공유 카드에 노출되는 값이 사실과 다르다. C9 일괄 공개 판정 뒤 실제 공개 건수로 갱신(공개 여부에 따라 값이 달라지므로 그때 함께)
 - C7 2층 v4 2차 검증 대상(콘텐츠팀): 신청 서식 전사 블록(OCR 유래), 인사관리 도표 2종 대체텍스트, `정본 수정 목록.csv` 「확인 필요」 행
-- C10 `source_page` 값 형식 정리(C9 전): 2층 쪽 주석이 섞여 `pdf373`(부록 표지, `source_page_end: 355`와 역전)·`pdf2`·`Ⅰ-3`~`Ⅰ-11` 같은 값이 12건(`source_page_end`까지 합치면 15개 파일). 드라이브 `문서 목록.csv` 「원본 쪽」과 「관련 페이지」 `(원본 N쪽)`에 그대로 노출된다. `decompose-source.ts` 쪽 주석 파서에서 `pdf` 접두는 `source_page_pdf`로만 보내고 인쇄 쪽이 없으면 비우는 쪽이 맞아 보임
 
 ## D. iOS TestFlight 준비물 (`docs/IOS_DISTRIBUTION.md` §2)
 
@@ -84,6 +83,9 @@
 | iOS 채팅 VoiceOver 실기기 판정(#108·#109) | 2026-07-20 합격, CHANGELOG 2026-07-20 |
 | gildongmu SpeechService 레이스 가드 백포트 | gildongmu `e1f5d2f`, CHANGELOG 2026-07-20 |
 | C5 3층 위키 문서 재생성 | 2026-08-29 완료(363건 draft), CHANGELOG 2026-08-29. 공개·임베딩 재개는 C9 |
+| C10 `source_page` 형식 혼재 | 2026-09-11 종결: `pdf` 라벨은 `source_page_pdf`로만(CHANGELOG 2026-09-11) |
+| C11 2023 보고서 2층 재빌드 회귀 | 2026-09-11 종결: 쪽 주석 조밀화 + 구간 범위 의미로 쪽 한정 치환 전부 통과 |
+| C12 부록 조사지 쪽 고정 | 2026-09-11 종결: 표 첫 줄 앞 쪽 주석으로 표지 쪽 403/419/436/452/467/482/498/513 확보(3층은 결정 3으로 미게시) |
 | C8 청각 (2)(3) 제목 승격 + 델파이 학교급 승격 | 2026-08-30 완료(363 → 367건, 분할 한도 5.5만 자 상향 포함), CHANGELOG 2026-08-30 |
 | A10 웹 홈 옴니박스 VoiceOver 실사용 | 2026-09-05 **합격**(4항목: 낭독 순서 검색창→음성→AI에게 질문 / Cmd+Enter 질문 전송 / `/chat` 도착 시 sr-only h1 「채팅」 낭독 / 완료 시 질문 헤딩 안착 후 다음이 답변), CHANGELOG 2026-09-04 |
 | E9 색상 대비 AA 미달 | 2026-09-05 완료(라이트 3종·다크 1종 토큰 조정 + 전수 매트릭스 게이트 신설, axe 기준선에서 color-contrast 제거로 0건 고정), CHANGELOG 2026-09-05 |

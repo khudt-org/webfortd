@@ -75,6 +75,19 @@ export const ALLOWED_HTML_TAGS = ['br', 'mark', 'sub', 'sup'] as const
 /** 파서 잔존 태그 — 본문에 남아 있으면 2층 승격 누락 신호(validate가 오류로 잡는다). */
 export const FORBIDDEN_HTML_TAGS = ['page_header', 'page_number', 'page_footer', 'u', 'figure', 'span'] as const
 
+/**
+ * 9/7 제5차 회의 결정 3: 연구 절차만 서술한 문서는 위키·챗봇 검색에서 제외하고 자료실 원본(PDF·마크다운 정본)으로만
+ * 안내한다. 2층 정본에는 그대로 남고 3층 페이지·관련 페이지 목록에서만 빠진다.
+ */
+export const EXCLUDED_SLUGS = new Set([
+  '2023-research-1-3-1', // 1) 연구 수행 절차
+  '2023-research-1-3-2', // 2) 연구 운영 조직 체계
+  '2023-research-app-2-x1', '2023-research-app-2-x2', '2023-research-app-2-x3', '2023-research-app-2-x4', // 델파이 1차 조사지
+  '2023-research-app-3-x1', '2023-research-app-3-x2', '2023-research-app-3-x3', '2023-research-app-3-x4', // 델파이 2차 조사지
+  '2023-research-4-3-1-1', // (1) 1차 및 2차 전문가협의회 진행 절차(청각)
+  '2023-research-4-3-1-2', // (2) 3차 전문가협의회 진행 절차(청각)
+])
+
 const OVERVIEW_MIN_CHARS = 100
 const MERGE_MAX_CHARS = 100
 // 2026-08-30 위원장 결정: 델파이 2차 특수학교용(4.9만 자)이 한 건으로 들어가도록 5만 → 5.5만(예산 5.25만).
@@ -188,7 +201,7 @@ const DOMAIN_KEYWORD_TABLE: Array<{ pattern: RegExp; domain: Frontmatter['domain
 const DISABILITY_KEYWORD_TABLE: Array<{ pattern: RegExp; value: Frontmatter['disability_types'][number] }> = [
   { pattern: /(시각장애|시각 장애|시각교원|시각장애인 교원|시각 장애인)/, value: '시각' },
   { pattern: /(청각장애|청각 장애|청각교원|청각장애인 교원|청각 장애인|난청)/, value: '청각' },
-  { pattern: /(지체장애|지체 장애|지체교원|지체장애인 교원|척수|절단)/, value: '지체' },
+  { pattern: /(지체장애|지체 장애|지체교원|지체장애인 교원|지체[·ㆍ‧]뇌병변|척수|절단)/, value: '지체' }, // 「지체·뇌병변장애」 병기 표기 포함(2차 검수 39번)
   { pattern: /(뇌병변|뇌성마비)/, value: '뇌병변' },
   { pattern: /(발달장애|자폐|지적장애)/, value: '발달' },
   { pattern: /(내부장애|간장애|신장장애|심장장애)/, value: '내부장애' },
@@ -239,7 +252,7 @@ export interface PageReport {
 }
 
 export interface DecomposeWarning {
-  kind: 'range' | 'dup_number' | 'merged' | 'split' | 'overview' | 'demoted_heading' | 'unnumbered' | 'title_dedup' | 'page_strip'
+  kind: 'range' | 'dup_number' | 'merged' | 'split' | 'overview' | 'demoted_heading' | 'unnumbered' | 'title_dedup' | 'page_strip' | 'excluded'
   slug: string
   detail: string
 }
@@ -522,6 +535,11 @@ function findPageComment(body: string, beforeOffset: number): { page: string; pd
   return last
 }
 
+/**
+ * 절 본문 [start, end) 안의 마지막 쪽 주석 라벨. 단, 그 주석 뒤에 본문 텍스트가 없으면(다음 절 제목 직전에 붙은
+ * 다음 쪽의 주석) 세지 않는다 — 2차 검수에서 `source_page_end`가 다음 절 시작 쪽으로 한 쪽 넘치던 원인.
+ * `pdf` 접두 라벨(인쇄 쪽 번호 없는 쪽)도 끝 쪽으로 쓰지 않는다.
+ */
 function lastPageCommentIn(body: string, start: number, end: number): string | null {
   const re = new RegExp(PAGE_COMMENT_RE.source, 'g')
   re.lastIndex = start
@@ -529,6 +547,9 @@ function lastPageCommentIn(body: string, start: number, end: number): string | n
   let m: RegExpExecArray | null
   while ((m = re.exec(body)) !== null) {
     if (m.index >= end) break
+    const after = body.slice(m.index + m[0].length, end).replace(new RegExp(PAGE_COMMENT_RE.source, 'g'), '')
+    if (!/\S/.test(after)) break
+    if (m[1].startsWith('pdf')) continue
     last = m[1]
   }
   return last
@@ -662,7 +683,13 @@ function buildOutlinePages(
       pushPlan(node, node.preface, true)
       warnings.push({ kind: 'overview', slug: `${meta.slugPrefix}-${node.segs.join('-')}`, detail: node.heading.text.slice(0, 60) })
     } else if (textLength(stripPageComments(node.preface)) > 0) {
-      node.children[0].preface = node.preface.trimEnd() + '\n\n' + node.children[0].preface
+      // 100자 미만 서문은 첫 자식 앞에 붙이되 어느 절의 서문인지 라벨을 단다(2차 검수 9·27번: 「1) 장애정도」
+      // 첫 줄이 「2. 장애인교원의 구분」 도입문이라 위치가 어긋나 보였다). 쪽 주석은 라벨 블록 밖(앞)에 남겨
+      // 쪽 계산이 그대로 되게 한다.
+      const comments = [...node.preface.matchAll(new RegExp(PAGE_COMMENT_RE.source, 'g'))].map((m) => m[0])
+      const quoted = stripPageComments(node.preface).trim().split('\n').map((l) => (l ? `> ${l}` : '>')).join('\n')
+      const labeled = `> 「${node.heading.text}」 서문\n>\n${quoted}`
+      node.children[0].preface = [...comments, labeled].join('\n') + '\n\n' + node.children[0].preface
     }
     node.children.forEach(visit)
   }
@@ -789,7 +816,9 @@ export function decomposeFile(args: {
     const start = findPageComment(body, p.headingOffset)
     const bodyStart = body.indexOf('\n', p.headingOffset) + 1
     const end = lastPageCommentIn(body, bodyStart, p.endOffset)
-    pageInfo.set(p.slug, { page: start?.page, end: end ?? start?.page, pdf: start?.pdf })
+    // `pdf373` 같은 라벨은 인쇄 쪽이 아니므로 source_page_pdf로만 보낸다(BACKLOG C10)
+    const page = start && !start.page.startsWith('pdf') ? start.page : undefined
+    pageInfo.set(p.slug, { page, end: end ?? page, pdf: start?.pdf })
   }
 
   // 본문 정리: 쪽 주석 제거 + 제목 수준 정규화
@@ -806,6 +835,13 @@ export function decomposeFile(args: {
       p.title = m[1]
     }
   }
+
+  // 결정 3 제외 문서: 페이지·관련 페이지 목록 모두에서 뺀다(2층 정본에는 남는다)
+  plans = plans.filter((p) => {
+    if (!EXCLUDED_SLUGS.has(p.slug)) return true
+    warnings.push({ kind: 'excluded', slug: p.slug, detail: `「${p.title}」 위키·챗봇 제외(9/7 결정 3)` })
+    return false
+  })
 
   // 빈 조각 병합(100자 미만 → 다음 형제, 없으면 이전 형제). 개요 페이지는 이미 100자 이상.
   if (meta.slugScheme === 'outline') {
@@ -959,7 +995,9 @@ export function decomposeFile(args: {
     const inferredDomains = inferDomainsForSection(headingPath, bodySample)
     const hasInferredDomains = inferredDomains.length > 0
     const finalDomains: Frontmatter['domains'] = hasInferredDomains ? inferredDomains : ['정책법령']
-    const inferredDts = inferDisabilityTypes(headingPath, bodySample, meta.defaultDisabilityTypes)
+    // 장애유형은 앞 500자가 아니라 본문 전체로 판정한다(2차 검수 20·39번: 뒤쪽 청각·지체 절이 빠졌다)
+    // 관련 페이지 목록의 형제 제목(「(1) 지체장애」 등)은 판정 재료가 아니다(간장애 문서에 「지체」가 붙던 원인)
+    const inferredDts = inferDisabilityTypes(headingPath, plan.body.replace(/\n## 관련 페이지\n[\s\S]*$/, ''), meta.defaultDisabilityTypes)
     const inferredRegions = inferRegions(plan.body)
 
     const lowConfidenceFields: string[] = []
@@ -1300,7 +1338,7 @@ async function main(): Promise<void> {
     const avg = result.pages.length ? Math.round(result.pages.reduce((s, p) => s + p.body.length, 0) / result.pages.length) : 0
     process.stdout.write(
       `[decompose] ${fileName} → ${result.pages.length}개 페이지(평균 ${avg}자), 개요 ${count('overview')}, 병합 ${count('merged')}, 분할 ${count('split')}, ` +
-      `범위 경고 ${count('range')}, 번호 중복 ${count('dup_number')}, 번호 없음 ${count('unnumbered')}, 제목 중복 해소 ${count('title_dedup')}, 이미지 ${result.unmatchedImages.length}건\n`,
+      `범위 경고 ${count('range')}, 번호 중복 ${count('dup_number')}, 번호 없음 ${count('unnumbered')}, 제목 중복 해소 ${count('title_dedup')}, 제외 ${count('excluded')}, 이미지 ${result.unmatchedImages.length}건\n`,
     )
     if (!dryRun) {
       for (const page of result.pages) writePage(page)
