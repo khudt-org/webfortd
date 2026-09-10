@@ -1,7 +1,7 @@
 ---
 title: "□ 의사소통 지원 관련 법적 근거"
 type: 안내서
-disability_types: ["전체"]
+disability_types: ["시각", "청각"]
 domains: ["복무관리", "편의지원", "권리구제"]
 regions: ["전국"]
 year: 2024
@@ -12,7 +12,6 @@ source:
 source_origin: "2024-support-staff-duty-guide"
 parent_headings: ["부록", "<부록1> 장애인교원 지원인력 제공 관련 법적 근거"]
 source_page: "138"
-source_page_end: "142"
 source_page_pdf: 138
 reviewed_by: []
 references: []

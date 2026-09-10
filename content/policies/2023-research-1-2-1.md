@@ -12,7 +12,7 @@ source:
 source_origin: "2023-disability-types-work-support-report"
 parent_headings: ["Ⅰ. 서론", "2. 연구 내용 및 범위"]
 source_page: "Ⅰ-6"
-source_page_end: "Ⅰ-8"
+source_page_end: "Ⅰ-7"
 source_page_pdf: 18
 reviewed_by: []
 references: []
@@ -26,8 +26,11 @@ accessibility:
 # 1) 교사의 직무 유형 분석
 
 ◦ 교사의 직무 분석 및 직무 유형 개발을 위하여 데이컴(DACUM)* 기법 등 직무분석기법을 활용하여 교원의 직무를 분석하고 대표적 직무 유형, 하위 직무 및 직무별 과제 도출
+
 ◦ 직무분석법에는 최초분석법(New Analysis Method), 비교확인법(Verification Method), 데이컴(DACUM: Developing A CurriculUM) 기법, FA(Functional Analysis), CBC(Competency Based Curriculum) 등이 있으나 이중 데이컴법은 특정 직무분야 종사자의 임무를 분석하는데 효과적인 방법으로 알려져 잇고, 특히 교사 교육 및 평가 준거 개발을 위한 기법으로도 널리 활용되고 있음
+
 ◦ 교사 직무 개발 및 분석 관련 국내외 문헌자료 수집 및 분석, 데이컴 기법 적용을 위한 데이컴위원회* 구성 후 위원회 내에서 [그림 Ⅰ-2]와 같은 직무 분석 절차 진행
+
 - 데이컴위원회: 연구진, 직무 분석 전문가, 현장 교원 등 10여명으로 구성하되, 학교과정(초등학교, 중학교, 고등학교, 특수학교) 및 담당 분야(담임, 교과, 특수 등)를 고려하여 구성하고, 준비 → 진행 → 마무리 등 3차에 걸쳐 진행
 - 직무분석절차: [그림 Ⅰ-1]과 같은 직무 분류표 개발을 위한 직무분석 절차 수행
 

@@ -12,7 +12,6 @@ source:
 source_origin: "2024-support-staff-duty-guide"
 parent_headings: ["부록", "<부록1> 장애인교원 지원인력 제공 관련 법적 근거"]
 source_page: "137"
-source_page_end: "138"
 source_page_pdf: 137
 reviewed_by: []
 references: []
@@ -29,6 +28,7 @@ accessibility:
 | --- |
 
 부록
+
 부록
 
 ## 관련 페이지

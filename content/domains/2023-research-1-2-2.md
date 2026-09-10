@@ -1,7 +1,7 @@
 ---
 title: "2) 교사 직무 유형에 따른 장애를 고려한 근무 지원 방안 탐색"
 type: 연구보고서
-disability_types: ["전체"]
+disability_types: ["시각", "청각", "지체", "뇌병변"]
 domains: ["복무관리", "연구통계"]
 regions: ["전국"]
 year: 2023
@@ -12,7 +12,7 @@ source:
 source_origin: "2023-disability-types-work-support-report"
 parent_headings: ["Ⅰ. 서론", "2. 연구 내용 및 범위"]
 source_page: "Ⅰ-8"
-source_page_end: "Ⅰ-10"
+source_page_end: "Ⅰ-9"
 source_page_pdf: 20
 reviewed_by: []
 references: []
@@ -46,7 +46,9 @@ accessibility:
 | 3차<br>(검토) | ⑨ 보고서 작성 | ㆍ장애인교원을 위한 장애유형별 근무 지원 방안 내용을 담은 보고서 작성(1종) |
 
 [그림 Ⅰ-3] 장애유형별 근무지원 방안 마련을 위한 장애유형별전문가협의회 워크숍 진행 절차
+
 ◦ 장애유형별전문가협의회는 <표 Ⅰ-1>에서 제시한 바와 같이 3개 분과로 구성ㆍ운영
+
 <표 Ⅰ-1> 장애유형별전문가협의회 구성 현황
 
 | 구분/분과 | 시각장애 | 청각장애 | 지체ㆍ뇌병변장애 등 |
