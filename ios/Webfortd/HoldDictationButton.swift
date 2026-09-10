@@ -194,11 +194,18 @@ struct HoldDictationButton: View {
         }
     }
 
-    /// 녹음 시작 순간 진행 중인 VO 낭독(라벨·힌트 설명)을 끊는다. 공백 1자의
-    /// interrupting(.high) 통지는 아무것도 발화하지 않으면서 발화 큐만 비운다.
+    /// 녹음 시작 순간 진행 중인 VO 낭독(라벨·힌트 설명)을 끊는다.
+    ///
+    /// **문자열은 빈 문자열이어야 한다**(gildongmu 실기기 4후보 판정 2026-08-01 백포트).
+    /// `.high` 통지는 *게시 시점에* 발화 큐를 끊고 *발화는 내용이 있을 때만* 하는 분리된
+    /// 동작이라, 빈 문자열이 "발화 0 + 차단 성공"을 동시에 만족한다.
+    /// ⚠ 공백 1자(" ")로 되돌리지 말 것: 무음이 아니라 "space"로 낭독된다(종전 주석의
+    /// "아무것도 발화하지 않는다"는 실측 반증). 그 발화가 스피커→마이크로 돌아 전사에
+    /// 섞인다 — gildongmu에서 홀드 1회에 "space space"가 들리고 무발화 전사에 "자."가
+    /// 찍혔다. U+200B도 발화되고, `.layoutChanged` 통지는 차단 자체에 실패한다.
     private func interruptVoiceOverSpeech() {
         guard UIAccessibility.isVoiceOverRunning else { return }
-        Announce.post(" ", interrupting: true)
+        Announce.post("", interrupting: true)
     }
 }
 
