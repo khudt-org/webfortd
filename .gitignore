@@ -64,3 +64,4 @@ content/_image-mappings.template.json
 supabase/.temp/
 supabase/.branches/
 data/source-hwp/
+__pycache__/
