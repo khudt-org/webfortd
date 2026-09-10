@@ -1,6 +1,7 @@
+# .git은 두지 않는다: Vercel 프로젝트의 빌드 생략 판정(git diff --quiet HEAD^ HEAD …, 2026-09-10 설정)이 .git을 읽는다.
+# 5월 CLI 배포 때 업로드 크기 때문에 넣었던 줄이며 git 연동 배포에는 필요 없다(2026-09-11 실측: 판정 실패로 배포 ERROR).
 node_modules
 .next
-.git
 .env*
 *.log
 .DS_Store
