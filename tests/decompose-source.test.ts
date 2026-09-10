@@ -141,7 +141,8 @@ describe('C. 주소 체계(outline)', () => {
   it('부록·분할·개요·번호 없음 주소 형태가 존재한다', () => {
     const slugs = new Set(pages.map((p) => p.slug))
     assert.ok(slugs.has('2023-research-app-1-2'), '[부록 1-2] → app-1-2')
-    assert.ok(slugs.has('2023-research-app-3-x4'), '특수학교용 2차(4.9만 자)는 5.5만 자 예산 안에서 한 건')
+    // 델파이 조사지 8건(app-2-x*·app-3-x*)은 9/7 결정 3으로 3층에서 제외 — 5.5만 자 한도 검증은 위키에 남는 최대 문서로
+    assert.ok(slugs.has('2023-research-app-1-4'), '[부록 1-4](3.3만 자)는 5.5만 자 예산 안에서 한 건')
     assert.ok(![...slugs].some((s) => /-pt\d+$/.test(s)), '현 4종에는 분할 페이지가 없어야 한다(있으면 한도 재검토)')
     assert.ok([...slugs].some((s) => /-x\d+$/.test(s)), '번호 없는 제목 x<n>')
     const overview = pages.find((p) => p.slug === '2023-hr-1-2-2')
@@ -313,5 +314,67 @@ describe('F. 참조 정합(대응표·이미지 매핑·검증 게이트)', () =
     assert.match(src, /axis override가 forcedAxis와 충돌/)
     assert.match(src, /_axis-overrides\.json에 분해 결과와 매칭 안 되는 slug/)
     assert.match(src, /INDENT_CODE_RE/)
+  })
+})
+
+describe('G. 2차 검수 반영(2026-09-11, 9/7 결정 4건)', () => {
+  const pages = outlinePages()
+  const bySlug = new Map(pages.map((p) => [p.slug, p]))
+  const EXCLUDED = [
+    '2023-research-1-3-1', '2023-research-1-3-2',
+    '2023-research-app-2-x1', '2023-research-app-2-x2', '2023-research-app-2-x3', '2023-research-app-2-x4',
+    '2023-research-app-3-x1', '2023-research-app-3-x2', '2023-research-app-3-x3', '2023-research-app-3-x4',
+    '2023-research-4-3-1-1', '2023-research-4-3-1-2',
+  ]
+
+  it('결정 3: 연구 절차 서술 문서 12건은 생성되지 않고 관련 페이지에서도 참조되지 않는다', () => {
+    for (const slug of EXCLUDED) assert.ok(!bySlug.has(slug), `${slug}가 생성됨`)
+    for (const p of pages) {
+      for (const slug of EXCLUDED) assert.ok(!p.body.includes(`[[${slug}|`), `${p.slug}가 제외 문서 ${slug}를 참조`)
+    }
+    assert.ok(bySlug.has('2023-research-4-3-1-3'), '결과가 담긴 (3) 1차~3차 전문가협의회 결과는 남아야 함')
+  })
+
+  it('쪽 범위: source_page_end가 다음 절 시작 쪽으로 넘치지 않고 pdf 접두 라벨은 source_page에 쓰지 않는다', () => {
+    const cerebral = bySlug.get('2023-hr-1-2-2-2')! // (2) 뇌병변장애: 원본 15쪽에서 끝남(2차 검수 29번)
+    assert.equal(cerebral.data.source_page, '15')
+    assert.ok(cerebral.data.source_page_end === undefined || cerebral.data.source_page_end === '15', `end=${cerebral.data.source_page_end}`)
+    const teaching = bySlug.get('2023-research-2-2-1-1')! // 정보접근 (1) 교수학습: 7~9쪽(20번)
+    assert.equal(teaching.data.source_page, '7')
+    assert.equal(teaching.data.source_page_end, '9')
+    for (const p of pages) {
+      if (p.data.source_page) assert.doesNotMatch(String(p.data.source_page), /^pdf/, `${p.slug}: source_page가 pdf 접두`)
+      if (p.data.source_page_end) assert.doesNotMatch(String(p.data.source_page_end), /^pdf/, `${p.slug}: source_page_end가 pdf 접두`)
+    }
+  })
+
+  it('100자 미만 부모 서문은 첫 자식 앞에 라벨 있는 인용 블록으로 붙는다(9·27번)', () => {
+    const degree = bySlug.get('2023-hr-1-2-1')! // 1) 장애정도 ← 「2. 장애인교원의 구분」 도입문
+    assert.match(degree.body, /^\s*# [^\n]+\n\n> 「2\. 장애인교원의 구분」 서문\n>\n> ◦ 장애인교원에 대한 특성과/)
+  })
+
+  it('장애유형은 본문 전체로 판정하되 관련 페이지의 형제 제목은 재료가 아니다(20·30·39번)', () => {
+    const guide = bySlug.get('2024-jbu-2-2-3-2')!.data.disability_types as string[]
+    for (const dt of ['시각', '청각', '지체', '뇌병변']) assert.ok(guide.includes(dt), `2024-jbu-2-2-3-2에 ${dt} 없음: ${guide}`)
+    const liver = bySlug.get('2023-hr-1-2-2-10')!.data.disability_types as string[]
+    assert.ok(!liver.includes('지체'), `간장애 문서에 지체: ${liver}`)
+  })
+
+  it('2층 반영 확인: 캡션 자동 번호·서식 전사 메모·병합 반복·상위 제목', () => {
+    for (const p of pages) {
+      assert.doesNotMatch(p.body, /<표 [ⅠⅡⅢⅣⅤIV]+->|\[그림 [ⅠⅡⅢⅣⅤIV]+-\]/, `${p.slug}: 캡션 번호 빈 채로 남음`)
+      assert.ok(!p.body.includes('(서식 전사:'), `${p.slug}: 내부 작업 메모 노출`)
+      assert.doesNotMatch(p.body, /^\|  \| (참고|지원 사례|유의사항) \|/m, `${p.slug}: 5열 박스 잔존`)
+    }
+    // 인사관리 부록3 「4. 편의지원 유형별 관련 기관, 시설 연락처」 아래 「1) 인적지원」(28번)
+    const contacts = bySlug.get('2023-hr-app-3-4-1')!
+    assert.ok(contacts, '2023-hr-app-3-4-1 없음')
+    assert.ok((contacts.data.parent_headings as string[]).some((h) => h.startsWith('4. 편의지원 유형별')), String(contacts.data.parent_headings))
+    // 지원인력 「다. 학습 활동 지원」 유의사항 1회(44번)
+    const staff = bySlug.get('2024-staff-4-2-3')!
+    assert.equal(staff.body.split('스마트 기기를 조작하기 어려운 경우').length - 1, 1)
+    // 중부대 Q&A 절차 9단계(39번)·인사관리 4) 기타 인사 관리 등(35번)
+    assert.ok(bySlug.get('2024-jbu-2-2-3-2')!.body.includes('① 지원 요청 → ② 관리자에게 지원 요청'))
+    assert.ok(bySlug.has('2023-hr-2-2-4-1') && bySlug.get('2023-hr-2-2-4-1')!.data.title === '(1) 전직 임용 과정에서의 차별 금지', '전직 임용 절 누락')
   })
 })

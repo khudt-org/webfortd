@@ -44,8 +44,8 @@ for item in json.load(open(a.spec, encoding="utf-8")):
         lines[j:k] = block
     elif mode == "replace_span":  # 앵커 줄부터 until 줄(앵커 뒤 첫 일치)까지 바꾼다
         ends = [k for k in range(i, len(lines)) if lines[k] == item["until"]]
-        if len(ends) != 1:
-            sys.exit(f"오류: until {len(ends)}회: {item['until'][:60]}")
+        if len(ends) != 1:  # 앵커 뒤에서 정확히 1회(앵커 앞의 같은 줄은 세지 않는다)
+            sys.exit(f"오류: until {len(ends)}회(앵커 뒤): {item['until'][:60]}")
         lines[i:ends[0] + 1] = block
     elif mode == "replace_whole_block":  # 앵커가 든 표 블록 전체를 바꾼다
         s0 = i
