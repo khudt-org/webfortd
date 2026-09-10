@@ -1158,6 +1158,7 @@ const WARNING_LABEL: Record<DecomposeWarning['kind'], string> = {
   unnumbered: '번호 없는 제목(x<n>)',
   title_dedup: '제목 중복 해소(부모 접두)',
   page_strip: '제목 끝 쪽수 제거',
+  excluded: '위키·챗봇 제외(9/7 결정 3)',
 }
 
 function writeReport(allResults: DecomposeResult[]): void {
