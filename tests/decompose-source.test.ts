@@ -187,7 +187,7 @@ describe('D. 본문 규칙', () => {
     assert.ok(withPage / pages.length > 0.9, `source_page 보유 비율 ${withPage}/${pages.length}`)
   })
 
-  it('관련 페이지 블록은 [[slug|제목]] (원본 N쪽) 형식이고 대상이 실제 페이지다', () => {
+  it('관련 페이지 블록은 [[slug|제목]] (원본 N쪽) 형식(종류별 ### 소제목 허용)이고 대상이 실제 페이지다', () => {
     const slugs = new Set(pages.map((p) => p.slug))
     let blocks = 0
     for (const p of pages) {
@@ -195,6 +195,8 @@ describe('D. 본문 규칙', () => {
       if (!m) continue
       blocks += 1
       for (const line of m[1].trim().split('\n')) {
+        if (line === '') continue
+        if (/^### (상위|하위|형제) 문서$/.test(line)) continue
         const lm = line.match(/^- \[\[([a-z0-9-]+)\|([^\]]+)\]\]( \(원본 [^)]+쪽\))?$/)
         assert.ok(lm, `${p.slug}: 관련 페이지 행 형식 위반 — ${line}`)
         assert.ok(slugs.has(lm![1]), `${p.slug}: 관련 페이지 대상 없음 ${lm![1]}`)
@@ -376,5 +378,72 @@ describe('G. 2차 검수 반영(2026-09-11, 9/7 결정 4건)', () => {
     // 중부대 Q&A 절차 9단계(39번)·인사관리 4) 기타 인사 관리 등(35번)
     assert.ok(bySlug.get('2024-jbu-2-2-3-2')!.body.includes('① 지원 요청 → ② 관리자에게 지원 요청'))
     assert.ok(bySlug.has('2023-hr-2-2-4-1') && bySlug.get('2023-hr-2-2-4-1')!.data.title === '(1) 전직 임용 과정에서의 차별 금지', '전직 임용 절 누락')
+  })
+})
+
+describe('H. 3차 검수 반영(2026-09-23, 자문 메모 260923 §4)', () => {
+  const pages = outlinePages()
+  const bySlug = new Map(pages.map((p) => [p.slug, p]))
+  const section = (body: string, name: string): string[] => {
+    const m = body.match(new RegExp(`\\n### ${name} 문서\\n\\n([\\s\\S]*?)(?=\\n### |$)`))
+    return m ? m[1].trim().split('\n') : []
+  }
+
+  it('§3.1 원문자 번호 문단은 줄마다 떨어진다(44·45번)', () => {
+    for (const slug of ['2024-staff-4-2-3', '2024-staff-4-1-2']) {
+      const lines = bySlug.get(slug)!.body.split('\n')
+      for (let i = 0; i + 1 < lines.length; i++) {
+        assert.ok(!(/^[①-⑳]/.test(lines[i]) && /^[①-⑳]/.test(lines[i + 1])), `${slug}: L${i + 1} 원문자 줄이 붙어 있음`)
+      }
+      assert.ok(lines.some((l) => /^① /.test(l)), `${slug}: ① 절차 설명이 있어야 함`)
+    }
+  })
+
+  it('§3.2 서식 이름표는 다음 제목의 문서 첫 줄에 붙는다(34번)', () => {
+    const pledge = bySlug.get('2023-hr-app-2-x2-x3')! // 보조공학기기 이용 서약서
+    assert.match(pledge.body, /^\s*# [^\n]+\n\n\[별지 제20호 서식\]\n/)
+    assert.ok(!pledge.body.includes('[별지 제15호 서식]'), '다음 서식 이름표가 서약서 끝에 남음')
+    const consent = bySlug.get('2023-hr-app-2-x2-x4')! // 개인정보 수집·이용 및 제공 사전 동의서
+    assert.match(consent.body, /^\s*# [^\n]+\n\n\[별지 제15호 서식\]\n/)
+    for (const p of pages) {
+      assert.doesNotMatch(p.body, /\n\[(별지|서식)[^\]]*\]\s*$/, `${p.slug}: 본문 끝에 라벨 잔존`)
+      assert.doesNotMatch(p.body, /\n\[(별지|서식)[^\]]*\]\n\n## 관련 페이지/, `${p.slug}: 관련 페이지 앞에 라벨 잔존`)
+    }
+  })
+
+  it('§3.3 관련 페이지에 상위·하위 문서가 들어간다(22·44번)', () => {
+    const parent = bySlug.get('2023-research-4-1-3')! // 3) 시사점 — 개요 페이지, 자식 (1)~(4)
+    const children = section(parent.body, '하위')
+    for (const n of [1, 2, 3, 4]) assert.ok(children.some((l) => l.includes(`[[2023-research-4-1-3-${n}|`)), `4-1-3 하위 문서에 -${n} 없음: ${children}`)
+    const child = bySlug.get('2023-research-4-1-3-1')!
+    assert.ok(section(child.body, '상위').some((l) => l.includes('[[2023-research-4-1-3|')), '자식의 상위 문서 링크 없음')
+    // 형제만 있는 문서는 종전처럼 평면 목록(소제목 없음)
+    const flat = bySlug.get('2024-staff-4-2-3')!
+    assert.ok(!/### (상위|하위|형제) 문서/.test(flat.body), '형제만 있는 문서에 소제목이 생김')
+    assert.ok(flat.body.includes('[[2024-staff-4-2-1|'), '형제 목록 유지')
+    // 상위·하위·형제 순서
+    const withAll = pages.find((p) => p.body.includes('### 상위 문서') && p.body.includes('### 하위 문서') && p.body.includes('### 형제 문서'))
+    if (withAll) {
+      const idx = ['상위', '하위', '형제'].map((k) => withAll.body.indexOf(`### ${k} 문서`))
+      assert.ok(idx[0] < idx[1] && idx[1] < idx[2], `${withAll.slug}: 순서 위반`)
+    }
+  })
+
+  it('§3.4 쪽 표시 보강: 승진 임용 40~42, 서약서 120, 사전 동의서 121~122(28·30·34번)', () => {
+    const promo = bySlug.get('2023-hr-2-2-3')!
+    assert.equal(promo.data.source_page, '40'); assert.equal(promo.data.source_page_end, '42')
+    const pledge = bySlug.get('2023-hr-app-2-x2-x3')!
+    assert.equal(pledge.data.source_page, '120'); assert.ok(pledge.data.source_page_end === undefined || pledge.data.source_page_end === '120')
+    const consent = bySlug.get('2023-hr-app-2-x2-x4')!
+    assert.equal(consent.data.source_page, '121'); assert.equal(consent.data.source_page_end, '122')
+  })
+
+  it('§3.5·3.6 2층 반영: 어절 공백·표 중복 행·각주 별표 이스케이프(6·24번)', () => {
+    assert.ok(bySlug.get('2023-research-2-3-1')!.body.includes('청각장애가 있는 교원도'), '「있 는」 잔존')
+    const degree = bySlug.get('2023-hr-1-2-1')!.body
+    assert.equal(degree.split('| 지체(상지 절단장애, 상지 관절장애, 상지 기능장애), 뇌병변').length - 1, 1, '중증장애 기준 표 행 중복')
+    assert.match(degree, /^\\\* 보건복지부장관이 고시한/m, '각주 * 미이스케이프(목록 기호로 렌더됨)')
+    assert.match(degree, /^\\\*\\\* 「국가유공자/m)
+    for (const p of pages) assert.doesNotMatch(p.body, /^\* (?!\*)/m, `${p.slug}: 줄머리 「* 」 잔존(각주면 \\*, 목록이면 -)`)
   })
 })

@@ -33,7 +33,11 @@
  *  - 쪽 주석 `<!-- p.X (pdf N) -->`는 frontmatter source_page*로 옮기고 본문에서 제거.
  *  - 이미지 `(이미지: alt)`는 TODO 마커 다음 줄에 원문을 남긴다(alt가 화면에서 사라지지
  *    않게). image:apply가 마커와 alt 줄을 함께 치환한다.
- *  - 같은 부모 경로 아래 형제 목록을 `## 관련 페이지`로 본문 끝에 붙인다(제목 + 원본 쪽).
+ *  - `## 관련 페이지`: 상위 문서(부모 절의 개요 페이지, 있을 때) → 하위 문서(개요 페이지의 자식) → 형제 문서
+ *    순으로 본문 끝에 붙인다(제목 + 원본 쪽). 형제만 있으면 평면 목록, 상위·하위가 하나라도 있으면 종류별
+ *    `###` 소제목으로 나눈다(3차 검수 22·44번: 「한 문서 = 한 절」 구조에서 자식 목록이 없어 유실로 오해).
+ *  - 제목 직전의 한 줄 라벨 `[별지 …]`·`[서식 …]`·`[부록 …]`은 다음 제목의 문서에 붙인다(제목 아래 첫 줄,
+ *    3차 검수 34번: 서식 이름표가 앞 문서 끝에 남았다).
  *  - 모든 분해 페이지는 status='draft' 강제. 공개는 2차 검증 뒤 `kb:bootstrap`.
  *  - 위원장이 수동 작성한 content/resources/* 등은 source_origin이 달라 --reset에서 보호.
  *  - idempotency: 동일 입력 두 번 실행 → 동일 출력.
@@ -252,7 +256,7 @@ export interface PageReport {
 }
 
 export interface DecomposeWarning {
-  kind: 'range' | 'dup_number' | 'merged' | 'split' | 'overview' | 'demoted_heading' | 'unnumbered' | 'title_dedup' | 'page_strip' | 'excluded'
+  kind: 'range' | 'dup_number' | 'merged' | 'split' | 'overview' | 'demoted_heading' | 'unnumbered' | 'title_dedup' | 'page_strip' | 'excluded' | 'form_label'
   slug: string
   detail: string
 }
@@ -555,6 +559,41 @@ function lastPageCommentIn(body: string, start: number, end: number): string | n
   return last
 }
 
+/** 제목 직전에 오는 한 줄 라벨. 서식 이름표(「[별지 제20호 서식]」)·「[서식 …]」·「[부록 …]」 */
+const FORM_LABEL_RE = /^\[(별지|서식|부록)[^\]]*\]\s*$/
+
+/**
+ * 제목 직전의 한 줄 라벨을 그 제목 아래 첫 줄로 옮긴다(3차 검수 34번). 2층 정본은 라벨을 서식 제목 바로 위에
+ * 두는데, 분해는 제목 앞 줄을 앞 절에 귀속시켜 서약서 문서 끝에 다음 서식의 이름표가 남고 자기 이름표는 앞
+ * 문서로 갔다. 라벨과 제목 사이에는 빈 줄·쪽 주석만 허용하며 쪽 주석은 제자리에 둔다(쪽 계산 불변).
+ */
+function attachFormLabels(body: string, warnings: DecomposeWarning[]): string {
+  const lines = body.split('\n')
+  const maskedLines = maskCodeBlocks(body).split('\n')
+  const pageCommentLine = new RegExp(`^\\s*${PAGE_COMMENT_RE.source}\\s*$`)
+  const labelFor = new Map<number, number>() // heading line → label line
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^#{1,6}\s+\S/.test(maskedLines[i])) continue
+    let j = i - 1
+    while (j >= 0 && (lines[j].trim() === '' || pageCommentLine.test(lines[j]))) j--
+    if (j < 0 || !FORM_LABEL_RE.test(maskedLines[j])) continue
+    labelFor.set(i, j)
+  }
+  if (labelFor.size === 0) return body
+  const moved = new Set(labelFor.values())
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (moved.has(i)) continue
+    out.push(lines[i])
+    const j = labelFor.get(i)
+    if (j !== undefined) {
+      out.push('', lines[j].trim())
+      warnings.push({ kind: 'form_label', slug: '', detail: `「${lines[j].trim()}」 → 「${lines[i].replace(/^#+\s*/, '').slice(0, 40)}」 아래로` })
+    }
+  }
+  return out.join('\n')
+}
+
 /** 제목 후보 제외 줄을 굵게로 강등한 본문(위치 보존을 위해 길이 유지 안 함 — 분해 전에 한 번만 적용). */
 function demoteNonHeadings(body: string, warnings: DecomposeWarning[]): string {
   const masked = maskCodeBlocks(body)
@@ -804,7 +843,7 @@ export function decomposeFile(args: {
   let plans: PagePlan[]
   let body = rawBody
   if (meta.slugScheme === 'outline') {
-    body = demoteNonHeadings(rawBody, warnings)
+    body = attachFormLabels(demoteNonHeadings(rawBody, warnings), warnings)
     plans = buildOutlinePages(body, meta, warnings)
   } else {
     plans = buildArticlePlans(body, meta)
@@ -933,31 +972,40 @@ export function decomposeFile(args: {
     }
   }
 
-  // 관련 페이지 블록: 같은 그룹(groupPath) 아래 형제. 부모의 개요 페이지가 있으면 첫 항목,
-  // 형제 중 개요 페이지(자식을 가진 절)도 목록에 포함한다(설계 §3.4).
+  // 관련 페이지 블록(설계 §3.4, 2026-09-23 개정): 상위 문서(부모 절의 개요 페이지 — 부모 페이지는 이때만 존재)
+  // → 하위 문서(이 페이지가 개요 페이지일 때 그 자식들) → 형제 문서(같은 groupPath). 세 종류 중 하나라도 있으면
+  // 블록을 만들고, 형제만 있으면 종전처럼 평면 목록, 상위·하위가 하나라도 있으면 종류별 `###` 소제목으로 나눈다.
+  // 3차 검수 22·44번: 「…다음과 같음」으로 끝나는 부모 문서에 자식 목록이 없어 독자가 유실로 오해했다.
   if (meta.slugScheme === 'outline') {
     const byGroup = new Map<string, PagePlan[]>()
+    const childrenOf = new Map<string, PagePlan[]>()
     for (const p of plans) {
-      const arr = byGroup.get(p.groupPath) ?? []
-      arr.push(p)
-      byGroup.set(p.groupPath, arr)
+      byGroup.set(p.groupPath, [...(byGroup.get(p.groupPath) ?? []), p])
+      childrenOf.set(p.parentPath, [...(childrenOf.get(p.parentPath) ?? []), p])
     }
-    const overviewBySlug = new Map(plans.filter((p) => p.isOverview).map((p) => [p.slug, p]))
+    // 5.5만 자 분할(`-ptN`)된 개요 페이지는 슬러그가 바뀌어도 자식의 parentPath·형제의 groupPath는 원 슬러그를 가리키므로
+    // 원 슬러그(분할 접미 제거)로 찾는다. 분할본이 여럿이면 첫 조각(pt1)이 상위 문서 링크 대상(리뷰 P2, 2026-09-23).
+    const baseSlug = (slug: string) => slug.replace(/-pt\d+$/, '')
+    const overviewBySlug = new Map<string, PagePlan>()
+    for (const p of plans) if (p.isOverview && !overviewBySlug.has(baseSlug(p.slug))) overviewBySlug.set(baseSlug(p.slug), p)
+    const refOf = (s: PagePlan): PageRef => ({ slug: s.slug, title: s.title, page: pageInfo.get(s.slug)?.page })
+    const fmt = (r: PageRef) => `- [[${r.slug}|${linkLabel(r.title)}]]${r.page ? ` (원본 ${formatPage(r.page)})` : ''}`
+    const cap = (refs: PageRef[]) => (refs.length > RELATED_MAX ? [...refs.slice(0, RELATED_MAX / 2), ...refs.slice(-RELATED_MAX / 2)] : refs)
     for (const p of plans) {
-      const refs: PageRef[] = []
       const parentOverview = overviewBySlug.get(p.groupPath)
-      if (parentOverview && parentOverview.slug !== p.slug) {
-        refs.push({ slug: parentOverview.slug, title: parentOverview.title, page: pageInfo.get(parentOverview.slug)?.page })
+      const parents = parentOverview && parentOverview.slug !== p.slug ? [refOf(parentOverview)] : []
+      const children = p.isOverview ? (childrenOf.get(baseSlug(p.slug)) ?? []).filter((c) => c.slug !== p.slug).map(refOf) : []
+      const siblings = (byGroup.get(p.groupPath) ?? []).filter((s) => s.slug !== p.slug && s.slug !== parentOverview?.slug).map(refOf)
+      if (parents.length + children.length + siblings.length === 0) continue
+      const sections: string[] = []
+      if (parents.length === 0 && children.length === 0) {
+        sections.push(cap(siblings).map(fmt).join('\n'))
+      } else {
+        if (parents.length > 0) sections.push(`### 상위 문서\n\n${parents.map(fmt).join('\n')}`)
+        if (children.length > 0) sections.push(`### 하위 문서\n\n${cap(children).map(fmt).join('\n')}`)
+        if (siblings.length > 0) sections.push(`### 형제 문서\n\n${cap(siblings).map(fmt).join('\n')}`)
       }
-      for (const s of byGroup.get(p.groupPath) ?? []) {
-        if (s.slug === p.slug) continue
-        refs.push({ slug: s.slug, title: s.title, page: pageInfo.get(s.slug)?.page })
-      }
-      if (refs.length === 0) continue
-      let shown = refs
-      if (refs.length > RELATED_MAX) shown = [...refs.slice(0, RELATED_MAX / 2), ...refs.slice(-RELATED_MAX / 2)]
-      const lines = shown.map((r) => `- [[${r.slug}|${linkLabel(r.title)}]]${r.page ? ` (원본 ${formatPage(r.page)})` : ''}`)
-      p.body = `${p.body}\n\n## 관련 페이지\n\n${lines.join('\n')}`.trim()
+      p.body = `${p.body}\n\n## 관련 페이지\n\n${sections.join('\n\n')}`.trim()
     }
   }
 
@@ -1159,6 +1207,7 @@ const WARNING_LABEL: Record<DecomposeWarning['kind'], string> = {
   title_dedup: '제목 중복 해소(부모 접두)',
   page_strip: '제목 끝 쪽수 제거',
   excluded: '위키·챗봇 제외(9/7 결정 3)',
+  form_label: '제목 직전 라벨을 다음 문서로(3차 검수 34번)',
 }
 
 function writeReport(allResults: DecomposeResult[]): void {
