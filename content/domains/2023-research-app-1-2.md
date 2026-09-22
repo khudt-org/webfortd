@@ -11,8 +11,8 @@ source:
   citation: "2023 장애유형별 장애인교원 근무 지원 방안 최종보고서"
 source_origin: "2023-disability-types-work-support-report"
 parent_headings: ["부록", "◇ 부록1. 장애인교원 근무지원 방안 개발 관련 자료"]
-source_page: "355"
-source_page_pdf: 379
+source_page: "356"
+source_page_pdf: 380
 reviewed_by: []
 references: []
 accessibility:
@@ -81,6 +81,6 @@ accessibility:
 ## 관련 페이지
 
 - [[2023-research-app-1-1|〔부록 1-1〕 지체장애인 교원 대상 교사 직무분류표 수정(안) 작성표]] (원본 351쪽)
-- [[2023-research-app-1-3|〔부록 1-3〕 지체장애인 교원별 직무 유형에 따른 근무 실태 및 개선방안 논의 결과표]] (원본 361쪽)
+- [[2023-research-app-1-3|〔부록 1-3〕 지체장애인 교원별 직무 유형에 따른 근무 실태 및 개선방안 논의 결과표]] (원본 364쪽)
 - [[2023-research-app-1-4|〔부록 1-4〕 주요 직무유형별 지체장애인 교원 근무 현황 및 지원 방안]] (원본 378쪽)
 - [[2023-research-app-1-5|〔부록 1-5〕 지체장애인 교원의 장애유형별 특성 및 요구를 고려한 전반적 지원 방안]] (원본 396쪽)

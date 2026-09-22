@@ -11,8 +11,8 @@ source:
   citation: "2023 장애유형별 장애인교원 근무 지원 방안 최종보고서"
 source_origin: "2023-disability-types-work-support-report"
 parent_headings: ["Ⅲ. 교원의 직무분류표 개발 및 타당성 검증"]
-source_page: "192"
-source_page_pdf: 216
+source_page: "193"
+source_page_pdf: 217
 reviewed_by: []
 references: []
 accessibility:
