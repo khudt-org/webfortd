@@ -1,7 +1,7 @@
 /**
  * KB 인덱스 쿼리 — fs 비의존 경량 모듈.
  *
- * kb.ts(getKBDocBySlug 등)는 `path.join(REPO_ROOT, ...)` + `fs.readFileSync`로 본문을
+ * kb.ts(getKBDocBySlug 등)는 `path.join(CONTENT_ROOT, ...)` + `fs.readFileSync`로 본문을
  * 읽으므로, Turbopack NFT가 content/ 전체(535개) + node_modules를 함수 번들에 trace한다.
  * 목록·카운트만 필요한 동적 페이지(axis 목록 페이지, 위키 홈 둘러보기 카드)가 kb.ts를
  * import하면 그 거대 trace를 함께 끌어와 Hobby 서버리스 함수 크기 한계를 초과 → 배포 실패.
