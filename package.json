@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:content && npm run sync:content && next build",
+    "build": "npm run validate:content && npm run sync:content && next build && npm run check:function-trace",
     "start": "next start",
     "lint": "eslint",
     "validate:content": "tsx scripts/validate-frontmatter.ts",
@@ -27,6 +27,7 @@
     "image:apply": "tsx scripts/image-mappings.ts apply",
     "check:alt-text": "tsx scripts/check-alt-text-labels.ts",
     "check:mdx-escape": "tsx scripts/check-mdx-escape.ts",
+    "check:function-trace": "tsx scripts/check-function-trace.ts",
     "test": "node --conditions react-server --import tsx --test 'tests/*.test.ts' 'tests/api/**/*.test.ts' 'tests/auth/**/*.test.ts' 'tests/chat/**/*.test.ts' 'tests/lib/**/*.test.ts' 'tests/library/**/*.test.ts' 'tests/media/**/*.test.ts' 'tests/rag/**/*.test.ts' 'tests/routing/**/*.test.ts' 'tests/scripts/**/*.test.ts' 'tests/voice/**/*.test.ts'",
     "test:integration": "node --env-file=.env.local --import tsx --test 'tests/migrations/**/*.test.ts'",
     "test:components": "vitest --run",

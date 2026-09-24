@@ -45,7 +45,11 @@ export interface DocumentFull extends KBDocumentSummary {
 
 // ---------- 내부 헬퍼 ----------
 
-const REPO_ROOT = process.cwd()
+// 본문 경로는 content/ 기준으로만 조합한다. 저장소 루트 + 변수로 조합하면 빌드의 파일 추적이
+// 읽을 범위를 좁히지 못해 data/·public/source-images 등 저장소 전체를 함수 번들에 싣는다
+// (함수 1개 220MB, 배포 1건 약 2GB로 Hobby Functions Storage 10GB 초과, 2026-09-25 실측).
+const CONTENT_ROOT = path.join(process.cwd(), 'content')
+const CONTENT_PREFIX = 'content/'
 
 function slugify(text: string): string {
   return text
@@ -111,9 +115,10 @@ export function getWikilinkAdjacency(): Record<string, string[]> {
 export const getKBDocBySlug = cache(
   async (slug: string): Promise<DocumentFull | null> => {
     const filePath = INDEX.slug_index[slug]
-    if (!filePath) return null
+    if (!filePath?.startsWith(CONTENT_PREFIX)) return null
 
-    const absPath = path.join(REPO_ROOT, filePath)
+    const absPath = path.join(CONTENT_ROOT, filePath.slice(CONTENT_PREFIX.length))
+    if (!absPath.startsWith(CONTENT_ROOT + path.sep)) return null
     if (!fs.existsSync(absPath)) return null
 
     const summary = INDEX.documents.find((d) => d.slug === slug)
