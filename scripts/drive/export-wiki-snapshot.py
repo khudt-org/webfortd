@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """content/ → 자문 드라이브 `6. 콘텐츠 편집/3. 위키 문서/` 스냅샷 + `문서 목록.csv` 재생성.
 
-대상은 4종 원본 파생 문서 + 단체협약(source_origin 기준, faq·resources·pre-phase-1 제외).
+대상은 4종 원본 파생 문서뿐이다(source_origin 기준). 단체협약(agreements/)은 과제 5 제외 데이터라 webfortd에만 두고
+드라이브로 내보내지 않는다(2026-08-05 결정, 2026-09-23 재확인). faq·resources·pre-phase-1도 제외.
 현 스냅샷은 `--keep-as "<폴더명>"`으로 `3. 위키 문서/` 아래에 보존한 뒤 교체한다(폴더가 이미 있으면 중단).
 DB·임베딩과 무관한 파일 복사이므로 `content/.embed-paused` 상태와 상관없이 실행 가능.
 
@@ -18,15 +19,13 @@ ADV=os.path.expanduser("~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Share
 EDIT=os.path.join(ADV,"6. 콘텐츠 편집")
 WIKI=os.path.join(EDIT,"3. 위키 문서")
 REVIEW=os.path.join(EDIT,"4. 위키 문서 검수 (지금 할 일)")
-FOLDERS=["disability-types","domains","policies","regions","uncategorized","agreements"]
+FOLDERS=["disability-types","domains","policies","regions","uncategorized"]
 SOURCE_NAME={
  "2023-disability-types-work-support-report":"2023 장애유형별 장애인교원 근무 지원 방안 최종보고서",
  "2023-hr-guide":"2023 장애인교원 인사관리 안내서",
  "2024-jbu-work-support-guide":"2024 중부대 장애인교원 근무지원 안내자료",
  "2024-support-staff-duty-guide":"장애인교원 지원인력 직무 수행 안내자료",
- "2020-collective-agreement":"2020 교육부-장애인교원노동조합 단체협약",
 }
-PREFIX={"2023-research":"2023-disability-types-work-support-report","2023-hr":"2023-hr-guide","2024-jbu":"2024-jbu-work-support-guide","2024-staff":"2024-support-staff-duty-guide","2020-ca":"2020-collective-agreement"}
 STATUS={"draft":"검토 중","published":"공개"}
 
 def parse(path):

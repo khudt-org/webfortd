@@ -8,6 +8,11 @@
 - **수정**: `kb.ts`는 `content/` 기준으로만 조합(`content/`로 시작하지 않는 인덱스 경로는 null). `mdx.ts`는 사용처 없는 `getDocBySlug`·`getAllDocsForSearch`·`extractHeadings`를 삭제(`getAllDocs`만 두 레거시 페이지가 쓴다). 리뷰 반영: `kb.ts`는 조합한 절대경로가 `content/` 안인지 한 번 더 확인. 로컬 추적 합계 `[...kb]` 2,475MB → 9.8MB, law-guide 2,471MB → 6.2MB, 함수 62개 전체 231MB.
 - **게이트**: `scripts/check-function-trace.ts`를 `npm run build` 끝에 연결. 추적 파일이 `.next/`·`node_modules/`·`content/`·`src/lib/kb-index.generated.json` 밖이면 빌드 실패. `mdx.ts`를 되돌린 빌드가 실패하는 것으로 확인했다.
 - **검증**: build 통과, unit 429 pass + 1 skip(`tests/scripts/check-function-trace.test.ts` 5건 신설), lint 0, 로컬 `next start`로 `/agreements/2020-ca-1-2`(본문)·law-guide(문서 목록)·research-guide 200.
+## 2026-09-23 — 드라이브 스냅샷에서 단체협약 제외
+
+- **배경**: 단체협약(`content/agreements/`, 49건)은 과제 5 제외 데이터인데(2026-08-05 결정) `scripts/drive/export-wiki-snapshot.py`가 함께 내보내 8/29 이후 스냅샷마다 드라이브 `3. 위키 문서/`에 섞여 들어갔다(위원장 9/23 지적). 드라이브 쪽은 자문 세션이 현재본·이전 버전 4곳의 `agreements/`와 `문서 목록.csv` 행을 먼저 지웠다.
+- **변경**: 스크립트 `FOLDERS`·`SOURCE_NAME`·`PREFIX`에서 단체협약 제거, docstring에 제외 사유 기록. `content/agreements/`는 그대로 둔다(webfortd 자체 자산).
+- **검증**: `--dry-run` 358건(84·74·69·131), 드라이브 현재본과 일치.
 
 ## 2026-09-23 — 3차 검수 반영 재생성: 엔진 0.3.1 + 2층 정렬·정규화·데이터 + 3층 규칙 3건 (358건, 주소 변경 0)
 
