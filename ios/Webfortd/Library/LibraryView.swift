@@ -17,7 +17,10 @@ struct LibraryView: View {
 
     var body: some View {
         Group {
-            if let items {
+            if let items, items.isEmpty {
+                // 3-state: 비어 있음은 실패와 다른 문구로(번들은 있으나 항목 0건).
+                ContentUnavailableView("아직 등록된 자료가 없습니다", systemImage: "tray")
+            } else if let items {
                 List(items) { item in
                     row(item)
                 }

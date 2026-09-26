@@ -73,6 +73,22 @@ import Testing
         #expect(!inline.plain.contains("<"))
     }
 
+    @Test func 블록_HTML_안의_한국어_꺾쇠_표기는_보존된다() {
+        let blocks = MarkdownBlockParser.parse("<div>\n제4조 <개정 2022. 1. 18.> <표 3> 참조\n</div>")
+        guard case let .paragraph(inline) = blocks.first else {
+            Issue.record("paragraph 아님: \(blocks)"); return
+        }
+        #expect(inline.plain == "제4조 <개정 2022. 1. 18.> <표 3> 참조")
+    }
+
+    @Test func 블록_HTML_주석과_속성_있는_태그는_벗겨진다() {
+        let blocks = MarkdownBlockParser.parse("<div class=\"note\">\n<!-- p.3\n(pdf 5) -->안내 <br/>문구\n</div>")
+        guard case let .paragraph(inline) = blocks.first else {
+            Issue.record("paragraph 아님: \(blocks)"); return
+        }
+        #expect(inline.plain == "안내 문구")
+    }
+
     @Test func 태그만_있는_블록_HTML은_생략된다() {
         let blocks = MarkdownBlockParser.parse("문단\n\n</div>")
         #expect(blocks.count == 1)
@@ -95,9 +111,16 @@ import Testing
         #expect(code.contains("<page_header>"))
     }
 
-    @Test func 번들_전량_파싱_스모크() throws {
-        // 파이프라인 미실행 환경(fresh clone)에서는 조용히 통과.
-        guard let store = try? KBStore.bundled(), !store.documents.isEmpty else { return }
+    /// 번들은 gitignore라 fresh clone·worktree엔 없다. 없으면 통과가 아니라 skip으로 드러낸다
+    /// (조용한 통과는 스모크가 도는 줄 알게 만든다).
+    static let bundledStore: KBStore? = {
+        guard let store = try? KBStore.bundled(), !store.documents.isEmpty else { return nil }
+        return store
+    }()
+
+    @Test(.enabled(if: bundledStore != nil, "콘텐츠 번들 없음 — node ios/scripts/bundle-content.mjs 후 실행"))
+    func 번들_전량_파싱_스모크() throws {
+        let store = try #require(Self.bundledStore)
         var emptySlugs: [String] = []
         var tagsRemaining: [(slug: String, pattern: String)] = []
         for doc in store.documents {
@@ -106,7 +129,7 @@ import Testing
 
             // plain 텍스트 전량 수집 후 마크다운 tag 잔존 검사(KBBlock.plainLines가 정본).
             let allPlain = blocks.plainLines.joined(separator: " ")
-            for pattern in ["<page_header", "<br", "</"] {
+            for pattern in ["<page_header", "<br", "</", "<!--", "[[", "]]"] {
                 if allPlain.contains(pattern) {
                     tagsRemaining.append((slug: doc.slug, pattern: pattern))
                 }

@@ -47,7 +47,8 @@ struct WebfortdApp: App {
         let chatAPI = ChatAPI(baseURL: AppConfig.webBaseURL, tokenProvider: { await authStore.accessToken() })
         let threadsAPI = ThreadsAPI(
             baseURL: AppConfig.webBaseURL, tokenProvider: { await authStore.accessToken() })
-        _chatStore = State(initialValue: ChatStore(api: chatAPI, threadsAPI: threadsAPI))
+        _chatStore = State(initialValue: ChatStore(
+            api: chatAPI, threadsAPI: threadsAPI, isSignedIn: { authStore.isSignedIn }))
     }
 
     var body: some Scene {

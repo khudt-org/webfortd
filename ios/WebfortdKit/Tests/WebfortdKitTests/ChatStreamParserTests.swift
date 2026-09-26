@@ -28,13 +28,20 @@ import Testing
             if case .metadata = $0 { return true }
             return false
         }
-        guard case .metadata(let sourceRefs, let threadId) = metadataEvent else {
+        guard case .metadata(let sourceRefs, let threadId, let historyUnsaved) = metadataEvent else {
             Issue.record("metadata 이벤트가 있어야 합니다.")
             return
         }
         #expect(sourceRefs.count == 3)
         #expect(sourceRefs.first?.slug == "2024-jbu-p-016")
         #expect(threadId == nil)
+        #expect(historyUnsaved == false)
+    }
+
+    @Test func historyUnsaved_true를_읽는다() {
+        let event = ChatStreamParser.parse(line:
+            #"data: {"type":"message-metadata","messageMetadata":{"sourceRefs":[],"historyUnsaved":true}}"#)
+        #expect(event == .metadata(sourceRefs: [], threadId: nil, historyUnsaved: true))
     }
 
     @Test func finish_이벤트가_정확히_한_번_등장한다() throws {

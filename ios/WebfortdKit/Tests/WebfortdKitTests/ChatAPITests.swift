@@ -52,7 +52,7 @@ private func chunked(_ data: Data, size: Int = 48) -> [Data] {
         }.joined()
         #expect(text.hasPrefix("한국장애인고용공단을 통해"))
 
-        guard case .metadata(let sourceRefs, let threadId)? = events.first(where: {
+        guard case .metadata(let sourceRefs, let threadId, _)? = events.first(where: {
             if case .metadata = $0 { return true }
             return false
         }) else {
@@ -88,6 +88,25 @@ private func chunked(_ data: Data, size: Int = 48) -> [Data] {
         #expect(parts[1]["mediaType"] as? String == "image/jpeg")
         #expect(parts[1]["filename"] as? String == "photo.jpg")
         #expect(parts[1]["url"] as? String == "data:image/jpeg;base64,AAAA")
+    }
+
+    @Test func 첨부_단독_전송은_빈_text_파트_없이_file_파트만_인코딩한다() async throws {
+        let box = CapturedRequestBox()
+        ChatStubURLProtocol.handler = { request in
+            box.request = request
+            return .init(statusCode: 200, chunks: [])
+        }
+
+        let attachment = ChatAttachment(mediaType: "application/pdf", dataBase64: "AAAA", filename: "a.pdf")
+        let message = ChatOutgoingMessage(role: "user", text: "", attachment: attachment)
+        for try await _ in stubbedAPI().stream(messages: [message], threadId: nil) {}
+
+        let request = try #require(box.request)
+        let json = try JSONSerialization.jsonObject(with: requestBodyData(request)) as? [String: Any]
+        let messages = try #require(json?["messages"] as? [[String: Any]])
+        let parts = try #require(messages.first?["parts"] as? [[String: Any]])
+        #expect(parts.count == 1)
+        #expect(parts[0]["type"] as? String == "file")
     }
 
     @Test func 첨부가_없으면_file_파트를_추가하지_않는다() async throws {

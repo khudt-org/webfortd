@@ -74,35 +74,22 @@ public struct MediaItem: Codable, Equatable, Sendable, Identifiable {
 }
 
 /// 번들 카탈로그 로더. KBStore와 동일한 Resources/KB 루트 사용.
+/// 파라미터 없는 판은 앱 리소스에서 읽고(파이프라인 미실행 시 throw), `from:` 판은 테스트 주입용.
 public enum CatalogStore {
-    /// 앱 리소스(Resources/KB)에서 library.json 로드. 파이프라인 미실행 시 throw.
-    public static func libraryItems() throws -> [LibraryItem] {
+    public static func libraryItems() throws -> [LibraryItem] { try decodeBundled("library.json") }
+    public static func libraryItems(from url: URL) throws -> [LibraryItem] { try decode(from: url) }
+    public static func mediaItems() throws -> [MediaItem] { try decodeBundled("media.json") }
+    public static func mediaItems(from url: URL) throws -> [MediaItem] { try decode(from: url) }
+
+    private static func decodeBundled<T: Decodable>(_ fileName: String) throws -> [T] {
         guard let root = Bundle.module.url(forResource: "KB", withExtension: nil) else {
             throw CatalogStoreError.bundleMissing
         }
-        return try libraryItems(from: root.appendingPathComponent("library.json"))
+        return try decode(from: root.appendingPathComponent(fileName))
     }
 
-    /// 지정 URL에서 library.json 로드. 테스트 주입용.
-    public static func libraryItems(from url: URL) throws -> [LibraryItem] {
-        let data = try Data(contentsOf: url)
-        let items = try JSONDecoder().decode([LibraryItem].self, from: data)
-        return items
-    }
-
-    /// 앱 리소스(Resources/KB)에서 media.json 로드. 파이프라인 미실행 시 throw.
-    public static func mediaItems() throws -> [MediaItem] {
-        guard let root = Bundle.module.url(forResource: "KB", withExtension: nil) else {
-            throw CatalogStoreError.bundleMissing
-        }
-        return try mediaItems(from: root.appendingPathComponent("media.json"))
-    }
-
-    /// 지정 URL에서 media.json 로드. 테스트 주입용.
-    public static func mediaItems(from url: URL) throws -> [MediaItem] {
-        let data = try Data(contentsOf: url)
-        let items = try JSONDecoder().decode([MediaItem].self, from: data)
-        return items
+    private static func decode<T: Decodable>(from url: URL) throws -> [T] {
+        try JSONDecoder().decode([T].self, from: Data(contentsOf: url))
     }
 }
 
