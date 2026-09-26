@@ -2,7 +2,7 @@
 
 > 현재 상태·다음 단계·미결 결정만 담는다(자율성 헌장 §문서화 규율). 항구 원칙은 CLAUDE.md, 날짜별 이력은 CHANGELOG.md, 열린 항목·판정 대기·이월은 docs/BACKLOG.md, PR 단위 상세는 git log.
 
-## 현재 상태 (2026-09-23)
+## 현재 상태 (2026-09-26)
 
 - **색상 대비 AA 충족(2026-09-05)**: 라이트 `--primary`·`--sidebar-primary`(#306cff → #215bf1)·`--muted-foreground`·`--destructive`, 다크 `--primary-foreground`(near-white → near-black) 조정으로 토큰·알파 조합 전 조합이 4.5:1 이상. 회귀는 `tests/lib/color-contrast.test.ts`가 계산으로 차단(브라우저 불필요).
 - **홈 검색 표면 단일화(2026-09-04)**: 홈은 히어로 **옴니박스** 단독(입력창 하나 + `[AI에게 질문]`, Cmd+Enter). 헤더 검색창은 홈에서만 숨고 그 밖 경로에서는 유지, 단축키 타깃 id는 `search-input` 하나로 통합. 질문은 `/chat?q=` → mount 시 1회 자동 전송 + 주소 정리. VoiceOver 실사용 합격(2026-09-05: 낭독 순서·Cmd+Enter·도착 커서·완료 커서 4항목).
@@ -12,7 +12,8 @@
 - **콘텐츠 baseline**: `content/` 417건 = published 50(단체협약 49 + resources 1) + draft 358(4종) + draft 9(FAQ). 콘텐츠 보유 축 8개(`CONTENT_AXES` 9개 중 stories 0건). RAG 청크는 DB 기준 2775(v3, 재임베딩 전).
 - **웹 콘텐츠 편집기 운영 중**(2026-08-04, PR #113): `(wiki)/editor`, GitHub PAT·Actions Secrets 등록 완료, 야간 sync+embed 워크플로(`nightly-embed.yml`, `LAST_EMBED_SHA` 게이트) 가동, production 실호출 통과. 잔여는 운영 잔무·VoiceOver 실측(BACKLOG §A8·§B).
 - **iOS 네이티브 v1**: 5탭(위키·채팅·자료실·미디어·설정) + 홀드 받아쓰기(채팅·위키 검색), 오프라인 위키 535건(v3 시점 번들. `bundle-content.mjs`가 published만 담는데 현재 published는 50건이라 C9 일괄 공개 전 재번들 금지), OTP 인증·이력. Kit 테스트 49 green. iPhone 13 Pro 실기기 배포 상태(`ios/deploy-device.sh`), 서명 팀 72JQ7VD4V5(Apple Developer Program 유료, 2026-07-12 승인). TestFlight 미제출(준비물 BACKLOG §D). 정본 spec `docs/superpowers/specs/2026-07-10-ios-native-app-design.md`, 배포 절차 `docs/IOS_DISTRIBUTION.md`.
-- **테스트 baseline**(2026-09-11): unit 419 pass + 1 skip(`npm test` 기준 tests 420) / component 211 / **a11y 40 전부 pass**(색상 대비 위반 0건 — 토큰 조정 + `tests/lib/color-contrast.test.ts` 전수 매트릭스 게이트, axe 기준선에서 color-contrast 키 제거) / integration RLS 5(실 DB; 기존 migrations 8건은 드리프트 실패 중 — BACKLOG E5).
+- **테스트 baseline**(2026-09-11): unit 419 pass + 1 skip(`npm test` 기준 tests 420) / component 211 / **a11y 40 전부 pass**(색상 대비 위반 0건 — 토큰 조정 + `tests/lib/color-contrast.test.ts` 전수 매트릭스 게이트, axe 기준선에서 color-contrast 키 제거) / integration RLS 5(실 DB). 2026-09-26 백로그 PR #121~#125(머지 대기)가 unit·Kit 테스트를 늘리고 migrations 드리프트 실패를 해소한다 — 머지 뒤 재측정.
+- **머지 대기 PR #121~#125**(2026-09-26 백로그 일괄 처리, CHANGELOG 같은 날): 순서 무관(파일 겹침 없음). #123(iOS)은 #124(서버 `historyUnsaved`) 없이도 동작한다.
 - **공식 사업 트랙**(2026-07-14): 과업요청서 최종본 중부대 전달 완료, 수행사 선정·계약은 중부대 주관. webfortd는 독립 레퍼런스 트랙(`docs/DIRECTION_2026.md` §11).
 - **서버 공용 자산**: Bearer 이중 인증(`src/lib/supabase/request-auth.ts`) + `GET /api/chat/threads/[id]`(iOS·웹 이력 복원 공용).
 

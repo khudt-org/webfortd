@@ -15,6 +15,7 @@
 | A7 | 애니메이션 feel check(reduced-motion 토글·채팅 자동 스크롤·모바일 드로어) | PR #97·#98 |
 | A8 | 웹 콘텐츠 편집기 VoiceOver 실기기 실측(편집 흐름 전체) | PR #113 |
 | A9 | 라이브 음성 채팅 실 마이크 smoke(`docs/PHASE7_ENV_SETUP.md` §3) | PR #74 |
+| A11 | iOS 이력 저장 실패 문구에 VoiceOver가 답변을 읽어 내려가며 도달하는지 / 첨부 단독 전송의 답변 수신·질문 헤딩 「첨부: 파일명」 낭독·포커스 보내기 버튼 유지 | PR #123 |
 
 채팅 VoiceOver(전송 포커스 유지→완료 시 질문 헤딩·홀드 받아쓰기 전 항목)는 2026-07-20 실기기 합격으로 종결(CHANGELOG 2026-07-20).
 
@@ -23,7 +24,6 @@
 - B1 연구보조원 이메일 `editor_roles` seed(위원장이 이메일 주면 service_role로 실행)
 - B2 감수자 안내 `docs/EDITOR_GUIDE.md` 전달(위원장)
 - B3 PAT `webfortd-content-editor` 만료일 2027-08-05 캘린더 등록(위원장)
-- B4 런북: Vercel 빌드 실패 이메일 수신 시 대응(revert 절차), 긴급 수정 시 RAG 즉시 갱신은 수동 `kb:sync`+`kb:embed`
 
 ## C. 콘텐츠
 
@@ -32,7 +32,7 @@
 - C3 ~~이미지 매핑 검수 큐 79건~~ → 폐기(2026-08-29): v3 LLM alt 기반 매핑은 2층 v4가 그림을 전사·대체텍스트로 흡수해 실체가 사라짐. 자산은 `content/_archive-v3/`에 보존, 새 매핑은 alt 해시 키로 `image:template`부터 시작(현재 마커 4건)
 - C4 `reviewed_by: ["1차 검토(김헌용)"]` placeholder를 정밀 검수 시 실제 reviewer로 교체(점진)
 - C6 지원인력 안내자료 부록2 기기 사진 12장 대체텍스트: v4는 `(사진: 기기명)` 자리표시(표 안 이미지라 HWPX 추출 불가). v3 LLM alt 11건 이식 또는 `generate_alt_text.py` 생성 — 3층 단계에서 처리
-- C9 **일괄 공개·임베딩 재개**(2차 검수 반영 재생성 9/11 완료, 3차 검수 9/14~16 → 수행사 전달 9/21 뒤 webfortd 공개는 별건 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → 야간 워크플로(또는 workflow_dispatch)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. **재개 전 필수 3건**: ① `scripts/lib/chunker.ts`가 `## 관련 페이지` 블록을 빼고 `[[slug|제목]]`을 표시명으로 치환(현재는 링크 구문이 그대로 임베딩됨, 리뷰 지적 2026-08-29) ② **구 v3 `documents` 행은 sync가 지우지 않는다** — `upsertDocuments`가 `onConflict: 'slug'` upsert라 주소가 바뀐 구 행이 published 상태로 남는다(delete-then-insert는 `wiki_backlinks` 전용, `sync-content-to-db.ts:178`·`:264`). 고아 행 정리 단계를 따로 넣을 것 ③ `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 367건 = 4종 358 + FAQ 9)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
+- C9 **일괄 공개·임베딩 재개**(2차 검수 반영 재생성 9/11 완료, 3차 검수 9/14~16 → 수행사 전달 9/21 뒤 webfortd 공개는 별건 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → `nightly-embed` workflow_dispatch(`allow_mass_delete`)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. 첫 실행이 수동인 이유: 구 v3 주소 행이 DB 과반(2026-09-26 dry-run 482/544)이라 `kb:sync`의 고아 정리가 플래그 없이는 멈추고, 야간 스케줄 실행은 플래그를 넘기지 못한다(PR #125). 옛 대화 기록의 출처 링크는 이때 끊긴 주소가 된다. **재개 전 남은 판정**: `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 367건 = 4종 358 + FAQ 9)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
 - C14 법령 최신화(2차 검수 47번: 장애인차별금지법 2025-03-18 개정 제4조 제1항 제7호 신설 등)는 방침대로 내년 갱신. 정본 수정 목록 유형 「법령 갱신」에 기록
 - C15 3층 축(폴더) 이동 54건(2026-09-11 장애유형 판정 변화): URL이 `/{axis}/{slug}`라 공개 뒤에 같은 일이 생기면 구 주소 리다이렉트가 필요하다. 공개 전(C9)에 축 판정을 확정하거나 slug 단독 라우트를 검토
 - C16 여러 쪽에 걸친 표 안의 쪽 주석(2026-09-23): 쪽 주석은 쪽이 바뀐 첫 본문 줄 앞에만 들어가고 GFM 표 안에는 둘 수 없어, 표 한 덩어리가 여러 쪽이면 그 안의 쪽은 마커가 없다(최종보고서 161쪽 — 직무분류표 53~79·면담 결과표 228~288·부록 결과표 352~402, 인사관리 5쪽, 중부대 6쪽, 지원인력 11쪽. `docs/regression-2026-09-review50.md` 「남은 빈 쪽」). 3층 `source_page_end`는 넘치지 않고 짧을 뿐이라 검수 지적은 없었다. 필요해지면 표를 자르지 않고 frontmatter에 표별 쪽 범위 목록을 두는 방안을 검토
@@ -51,14 +51,11 @@
 
 ## E. 기술 부채 (비차단, 우선순위 낮음)
 
-- E1 iOS M3: 무효 Bearer 시 조용한 미저장(이력 저장 실패 신호 없음) / `GET /api/chat/threads*` rate limit 부재 / 첨부 이력 미보존(저장은 텍스트만)
-- E2 iOS M2: 첨부 단독 전송 미지원(웹은 허용, `ChatStore.swift` 빈 텍스트 guard)
-- E3 iOS M0/M1: 파서 스모크 assertion 보강, `MarkdownBlockParser` HTMLBlock 정규식 협소화, `DocumentView` backlinkSection compactMap 선필터(발현 불가·방어적)
-- E4 iOS M4: 자료실·미디어 빈 목록 상태 뷰(현재 도달 불가), CatalogStore 로더 제네릭 통합
-- E5 `tests/migrations` 8건이 운영 DB 베이스라인 드리프트(published 535 vs 초기 가정 0 등)로 실패 중 — 베이스라인 갱신 또는 fixture 격리(CHANGELOG 2026-08-04 부수 발견)
-- E6 웹 감사 보류분(PR #78): ChatUI `aria-relevant`(위원장 실 VoiceOver 판정) / KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션) / 분산 rate limit·첨부 magic bytes 검사
-- E7 RAG 청크 `char_start`/`char_end` DEFERRED(Phase 3 M1)
-- E8 decompose 리뷰 잔여(2026-08-29): 범위 경고가 자기+부모 kind만 봄(조상 전체로 넓히면 2층 승격 누락 신호 증가) / 분해 규칙(split·merge·range·demote·-d2) 단위 테스트 부재(함수 미export, 현재는 실 content e2e만)
+- E1 채팅 이력: 첨부 이력 미보존(저장은 텍스트만, iOS 이력 복원 시 「첨부: 파일」로만 보임) / 웹 쿠키 세션이 대화 중 만료되면 서버가 익명과 구분하지 못해 `historyUnsaved` 신호가 없다(Bearer만 신호, PR #124 리뷰 P3)
+- E6 웹 감사 보류분(PR #78): ChatUI `aria-relevant`(위원장 실 VoiceOver 판정) / KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션 — 운영 DB 변경이라 C9 재개와 묶어 판단) / 분산 rate limit(외부 저장소 필요, 비용)
+- E8 decompose 범위 경고가 자기+부모 kind만 봄(조상 전체로 넓히면 2층 승격 누락 신호 증가 — 잡음 대비 이득 판정 필요)
+- E10 `tests/migrations/0005_rag_infrastructure.test.ts`가 청크 1000+·문서 535+ 절대 수치를 가정한다. 지금은 통과하지만 C9 재개(고아 482건 삭제) 뒤 깨진다 — 재개 PR에서 불변식 단언으로 교체(PR #122 리뷰 발견)
+- E11 `npx tsc --noEmit`이 테스트 파일 4곳(`tests/editor-edit-core`·`tests/lib/motion`·`tests/migrations/0013`·`tests/rag/route-handler`)에서 오류 11건. 테스트 러너(tsx)는 타입을 보지 않아 통과 중이고 CI 게이트에도 tsc가 없다
 
 ## F. 사업·운영 결정 대기 (판정은 PROGRESS §미결 결정)
 
@@ -89,4 +86,9 @@
 | C12 부록 조사지 쪽 고정 | 2026-09-11 종결: 표 첫 줄 앞 쪽 주석으로 표지 쪽 403/419/436/452/467/482/498/513 확보(3층은 결정 3으로 미게시) |
 | C8 청각 (2)(3) 제목 승격 + 델파이 학교급 승격 | 2026-08-30 완료(363 → 367건, 분할 한도 5.5만 자 상향 포함), CHANGELOG 2026-08-30 |
 | A10 웹 홈 옴니박스 VoiceOver 실사용 | 2026-09-05 **합격**(4항목: 낭독 순서 검색창→음성→AI에게 질문 / Cmd+Enter 질문 전송 / `/chat` 도착 시 sr-only h1 「채팅」 낭독 / 완료 시 질문 헤딩 안착 후 다음이 답변), CHANGELOG 2026-09-04 |
+| B4 편집기 운영 런북 | 2026-09-26 `docs/EDITOR_RUNBOOK.md`, CHANGELOG 2026-09-26 |
+| C9 재개 전 필수 ①②(청크 전처리·고아 행 정리), E7 청크 오프셋 | 2026-09-26 PR #125, CHANGELOG 2026-09-26 |
+| E1 서버 신호·threads rate limit, E6 첨부 magic bytes | 2026-09-26 PR #124 |
+| E1 iOS 표시, E2·E3·E4 | 2026-09-26 PR #123 |
+| E5 통합 테스트 드리프트, E8 분해 규칙 단위 테스트 | 2026-09-26 PR #122 |
 | E9 색상 대비 AA 미달 | 2026-09-05 완료(라이트 3종·다크 1종 토큰 조정 + 전수 매트릭스 게이트 신설, axe 기준선에서 color-contrast 제거로 0건 고정), CHANGELOG 2026-09-05 |
