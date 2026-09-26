@@ -37,8 +37,11 @@ function countByRule(violations: Array<{ id: string }>): RouteBaseline {
   return counts
 }
 
+// 404·리다이렉트 화면을 그 route 키로 감사해 초록을 내지 않게 응답 상태와 최종 경로를 단언한다.
 export async function expectNoAxeViolations(page: Page, info: TestInfo, route: string) {
-  await page.goto(route, { waitUntil: 'domcontentloaded' })
+  const res = await page.goto(route, { waitUntil: 'domcontentloaded' })
+  expect(res?.status(), `${route} — 응답 상태`).toBe(200)
+  expect(new URL(page.url()).pathname, `${route} — 최종 경로`).toBe(new URL(route, page.url()).pathname)
   await page.waitForLoadState('load')
 
   const results = await new AxeBuilder({ page })
