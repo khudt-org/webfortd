@@ -436,7 +436,7 @@ describe('fetchAllDocumentSlugs / deleteOrphanDocuments (mocked client)', () => 
           order: () => ({
             range: async (from: number, to: number) => {
               ranges.push(`${from}-${to}`)
-              return { data: all.slice(from, to + 1).map((slug) => ({ slug })), error: null }
+              return { data: all.slice(from, to + 1).map((slug) => ({ slug })), error: null, count: all.length }
             },
           }),
         }),
@@ -444,6 +444,24 @@ describe('fetchAllDocumentSlugs / deleteOrphanDocuments (mocked client)', () => 
     } as any
     assert.deepEqual(await fetchAllDocumentSlugs(mockClient, 2), all)
     assert.deepEqual(ranges, ['0-1', '2-3', '4-5'])
+  })
+
+  test('서버가 pageSize보다 적게 잘라 주면(max_rows 불일치) 조기 종료 대신 throw', async () => {
+    const all = ['a', 'b', 'c', 'd', 'e']
+    const mockClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: async (from: number) => ({
+              data: all.slice(from, from + 1).map((slug) => ({ slug })),
+              error: null,
+              count: all.length,
+            }),
+          }),
+        }),
+      }),
+    } as any
+    await assert.rejects(fetchAllDocumentSlugs(mockClient, 2), /조회 누락/)
   })
 
   test('배치로 나눠 slug 기준 삭제, 오류는 throw', async () => {

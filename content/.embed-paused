@@ -1,5 +1,6 @@
 3층 재생성(2026-08-29) 이후 2차 검증이 끝날 때까지 야간 kb:sync·kb:embed를 멈춘다.
 근거: 자문 메모 260828 §5 결정 2(임베딩은 2차 검증 뒤 한 번만) — 주소 체계가 바뀌어 kb:sync는
 구 주소 행을 고아로 만들고 kb:embed는 2,700여 청크를 전량 재생성(유료)한다.
-재개 절차: kb:bootstrap --apply(일괄 공개) → 이 파일 삭제 → 커밋 → 다음 야간 실행(또는
-workflow_dispatch)이 sync+embed를 한 번에 따라잡는다.
+재개 절차: kb:bootstrap --apply(일괄 공개) → 이 파일 삭제 → 커밋 → workflow_dispatch를
+allow_mass_delete 켜고 1회 실행(구 v3 주소 행이 DB 과반이라 kb:sync의 고아 정리가 플래그 없이는
+멈춘다. 야간 스케줄 실행은 플래그가 없어 이 첫 회를 대신하지 못한다).

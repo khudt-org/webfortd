@@ -228,22 +228,30 @@ export function planOrphanCleanup(
   return { orphans, dbTotal, blocked: false, reason: null }
 }
 
-/** documents의 slug 전체(PostgREST 1000행 상한을 넘어도 누락 없이 페이징). */
+/**
+ * documents의 slug 전체(PostgREST 1000행 상한을 넘어도 누락 없이 페이징).
+ * 서버 max_rows가 pageSize보다 작으면 짧은 페이지를 끝으로 오인하므로 exact count와 대조한다.
+ */
 export async function fetchAllDocumentSlugs(
   client: SupabaseClient,
   pageSize = 1000,
 ): Promise<string[]> {
   const slugs: string[] = []
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await client
+    const { data, error, count } = await client
       .from('documents')
-      .select('slug')
+      .select('slug', { count: 'exact' })
       .order('slug')
       .range(from, from + pageSize - 1)
     if (error) throw new Error(`documents slug fetch 실패: ${error.message}`)
     const page = (data ?? []) as { slug: string }[]
     slugs.push(...page.map((r) => r.slug))
-    if (page.length < pageSize) return slugs
+    if (page.length < pageSize) {
+      if (count != null && slugs.length !== count) {
+        throw new Error(`documents slug 조회 누락: ${slugs.length}건 / 전체 ${count}건 (pageSize와 서버 max_rows 불일치 의심)`)
+      }
+      return slugs
+    }
   }
 }
 

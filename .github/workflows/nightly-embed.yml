@@ -17,7 +17,12 @@ name: nightly-embed
 on:
   schedule:
     - cron: '0 18 * * *' # KST 03:00
-  workflow_dispatch: {} # 수동 재처리 경로(spec §11-6)
+  workflow_dispatch: # 수동 재처리 경로(spec §11-6)
+    inputs:
+      allow_mass_delete:
+        description: 'DB 과반이 고아(주소 체계 전환 직후)여도 정리 진행 — .embed-paused 해제 첫 실행에만'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -69,7 +74,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
         run: |
-          npx tsx scripts/sync-content-to-db.ts
+          npx tsx scripts/sync-content-to-db.ts ${{ inputs.allow_mass_delete && '--allow-mass-delete' || '' }}
           npx tsx scripts/embed-content.ts
 
       - name: 성공 SHA 기록 (실패 시 미기록 → 다음 실행이 자동 재시도)
