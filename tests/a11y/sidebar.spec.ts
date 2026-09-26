@@ -12,7 +12,7 @@ import { expectNoAxeViolations } from "./axe-helper"
 import { SIDEBAR_COOKIE_NAME } from "../../src/lib/sidebar-cookie"
 
 const COOKIE_NAME = SIDEBAR_COOKIE_NAME
-const BASE_URL = "http://localhost:3000"
+const BASE_URL = "http://localhost:3100"
 
 // ─── Axe 검증 ────────────────────────────────────────────────────────────────
 
