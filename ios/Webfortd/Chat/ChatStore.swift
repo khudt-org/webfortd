@@ -139,10 +139,10 @@ final class ChatStore {
                     guard !Task.isCancelled else { break }
                     self.apply(event, at: assistantIndex)
                 }
-                // 이력 저장 실패 판정: 서버가 무효 토큰을 익명으로 처리하거나 저장에 실패하면
-                // 오류 없이 threadId만 빠진다. 새 대화에서만 판정 가능(기존 대화 이어쓰기 실패는
-                // 응답에 신호가 없다). 통지는 답변 아래 정적 문구 — 완료 포커스 계약(§6)을
-                // 건드리지 않고 답변을 읽어 내려가면 만난다(추가 live 통지 없음).
+                // 이력 저장 실패 판정: 서버 metadata의 historyUnsaved(이어쓰기 실패 포함, apply에서 반영)가
+                // 정본이고, 그 신호가 없는 구 서버에 대비해 "로그인 새 대화인데 threadId가 안 왔다"도 실패로 본다.
+                // 통지는 답변 아래 정적 문구 — 완료 포커스 계약(§6)을 건드리지 않고 답변을 읽어
+                // 내려가면 만난다(추가 live 통지 없음).
                 if !Task.isCancelled, expectsNewThread, self.threadId == nil {
                     self.messages[assistantIndex].historyNotSaved = true
                 }
@@ -256,8 +256,11 @@ final class ChatStore {
         case .textDelta(let delta):
             messages[index].text += delta
             streamTick += 1
-        case .metadata(let sourceRefs, let newThreadId):
+        case .metadata(let sourceRefs, let newThreadId, let historyUnsaved):
             messages[index].sourceRefs = sourceRefs
+            if historyUnsaved {
+                messages[index].historyNotSaved = true
+            }
             if let newThreadId {
                 threadId = newThreadId
             }

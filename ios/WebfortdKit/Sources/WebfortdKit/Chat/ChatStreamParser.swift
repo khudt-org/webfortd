@@ -3,7 +3,8 @@ import Foundation
 /// 웹 `/api/chat` UIMessage 스트림(SSE)에서 앱이 관심 있는 이벤트 3종.
 public enum ChatStreamEvent: Equatable, Sendable {
     case textDelta(String)
-    case metadata(sourceRefs: [ChatSourceRef], threadId: String?)
+    /// `historyUnsaved`: 로그인 요청인데 서버가 이력을 저장하지 못했다(무효 토큰·저장 실패). 성공·익명은 false.
+    case metadata(sourceRefs: [ChatSourceRef], threadId: String?, historyUnsaved: Bool)
     case finish
 }
 
@@ -27,7 +28,8 @@ public enum ChatStreamParser {
         case "message-metadata":
             return .metadata(
                 sourceRefs: envelope.messageMetadata?.sourceRefs ?? [],
-                threadId: envelope.messageMetadata?.threadId)
+                threadId: envelope.messageMetadata?.threadId,
+                historyUnsaved: envelope.messageMetadata?.historyUnsaved ?? false)
         case "finish":
             return .finish
         default:
@@ -45,5 +47,6 @@ public enum ChatStreamParser {
     private struct MessageMetadata: Decodable {
         let sourceRefs: [ChatSourceRef]?
         let threadId: String?
+        let historyUnsaved: Bool?
     }
 }

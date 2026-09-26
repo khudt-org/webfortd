@@ -52,7 +52,7 @@ private func chunked(_ data: Data, size: Int = 48) -> [Data] {
         }.joined()
         #expect(text.hasPrefix("한국장애인고용공단을 통해"))
 
-        guard case .metadata(let sourceRefs, let threadId)? = events.first(where: {
+        guard case .metadata(let sourceRefs, let threadId, _)? = events.first(where: {
             if case .metadata = $0 { return true }
             return false
         }) else {
