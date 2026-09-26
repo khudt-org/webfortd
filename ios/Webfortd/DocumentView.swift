@@ -70,9 +70,12 @@ struct DocumentView: View {
 
     @ViewBuilder
     private func backlinkSection(store: KBStore) -> some View {
-        let backlinks = store.backlinks(slug: slug)
+        // summary 미해석 백링크는 미리 걸러낸다 — 원본이 비어 있지 않아도 해석되는 행이
+        // 0건이면 헤딩만 남은 빈 섹션이 되므로, 비어 있음 판정은 해석 결과로 한다.
+        let backlinks = store.backlinks(slug: slug).compactMap { backlink in
+            store.summary(slug: backlink.from).map { (slug: backlink.from, title: $0.frontmatter.title) }
+        }
 
-        // 백링크가 없으면 섹션을 렌더하지 않음.
         if !backlinks.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Divider()
@@ -82,16 +85,13 @@ struct DocumentView: View {
                     .accessibilityAddTraits(.isHeader)
 
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(backlinks, id: \.from) { backlink in
-                        // summary 미해석이면 해당 행 생략.
-                        if let backlinkSummary = store.summary(slug: backlink.from) {
-                            // 44pt frame은 label 안쪽 + contentShape(바깥 frame은 히트 영역을
-                            // 안 넓힌다 — ScrollView라 List 행 전체 탭도 없음)
-                            NavigationLink(value: AppRoute.document(slug: backlink.from)) {
-                                Text(backlinkSummary.frontmatter.title)
-                                    .frame(minHeight: 44)
-                                    .contentShape(Rectangle())
-                            }
+                    ForEach(backlinks, id: \.slug) { backlink in
+                        // 44pt frame은 label 안쪽 + contentShape(바깥 frame은 히트 영역을
+                        // 안 넓힌다 — ScrollView라 List 행 전체 탭도 없음)
+                        NavigationLink(value: AppRoute.document(slug: backlink.slug)) {
+                            Text(backlink.title)
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                     }
                 }

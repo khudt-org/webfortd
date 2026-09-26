@@ -77,7 +77,9 @@ public struct ChatAPI: Sendable {
     private static func encodeBody(messages: [ChatOutgoingMessage], threadId: String?) throws -> Data {
         let payload = UIMessagesPayload(
             messages: messages.map { message in
-                var parts: [UIMessagesPayload.Part] = [.text(message.text)]
+                // 첨부 단독 전송(텍스트 없음)은 빈 text 파트를 싣지 않는다(서버는 첨부만으로 허용).
+                var parts: [UIMessagesPayload.Part] =
+                    message.text.isEmpty && message.attachment != nil ? [] : [.text(message.text)]
                 if let attachment = message.attachment {
                     parts.append(.file(
                         mediaType: attachment.mediaType,

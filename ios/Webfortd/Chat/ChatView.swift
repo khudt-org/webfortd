@@ -292,7 +292,7 @@ struct ChatView: View {
     private func userBubble(_ message: ChatMessage) -> some View {
         HStack {
             Spacer(minLength: 32)
-            Text(message.text)
+            Text(message.displayText)
                 .padding(12)
                 .background(.tint.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
                 .accessibilityAddTraits(.isHeader)
@@ -312,6 +312,11 @@ struct ChatView: View {
             }
             if !message.sourceRefs.isEmpty {
                 sourceCards(message.sourceRefs)
+            }
+            if message.historyNotSaved {
+                Text("이 대화는 대화 목록에 저장되지 않았어요. 계속되면 계정에서 로그아웃한 뒤 다시 로그인해 주세요.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

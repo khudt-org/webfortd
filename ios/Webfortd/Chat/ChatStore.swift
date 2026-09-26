@@ -10,12 +10,23 @@ struct ChatMessage: Identifiable, Equatable {
     var text: String
     var sourceRefs: [ChatSourceRef]
     var isError: Bool = false
+    /// 이 질문과 함께 보낸 첨부 파일명(첨부 단독 전송의 표시·이력 문맥용).
+    var attachmentFilename: String?
+    /// 로그인 상태로 새 대화를 시작했는데 서버가 대화 id를 돌려주지 않은 답변(= 이력 저장 실패).
+    var historyNotSaved: Bool = false
 
-    init(role: String, text: String, sourceRefs: [ChatSourceRef] = []) {
+    init(role: String, text: String, sourceRefs: [ChatSourceRef] = [], attachmentFilename: String? = nil) {
         id = UUID()
         self.role = role
         self.text = text
         self.sourceRefs = sourceRefs
+        self.attachmentFilename = attachmentFilename
+    }
+
+    /// 텍스트 없는 질문(첨부 단독 전송, 첨부는 이력에 보존되지 않아 복원 시 파일명도 없음)의 표시 문구.
+    var displayText: String {
+        guard text.isEmpty, role == "user" else { return text }
+        return "첨부: \(attachmentFilename ?? "파일")"
     }
 }
 
@@ -61,6 +72,9 @@ final class ChatStore {
     private static let oversizeAttachmentMessage = "파일이 너무 커요. 10MB 이하만 첨부할 수 있어요."
 
     private let api: ChatAPI
+    /// 로그인 여부. 서버는 무효 토큰을 익명으로 처리하고 저장 실패를 알리지 않으므로, 로그인 상태에서
+    /// 새 대화의 threadId가 오지 않은 것을 iOS가 저장 실패로 판정하는 근거로만 쓴다.
+    private let isSignedIn: @MainActor () -> Bool
     /// internal(비-private): `ThreadListSheet`가 별도 `ThreadsAPI` 인스턴스를 새로 만들지 않고
     /// 이 인스턴스를 재사용한다(같은 tokenProvider를 중복 구성하지 않기 위함).
     let threadsAPI: ThreadsAPI
@@ -72,10 +86,12 @@ final class ChatStore {
 
     init(
         api: ChatAPI = ChatAPI(baseURL: AppConfig.webBaseURL),
-        threadsAPI: ThreadsAPI = ThreadsAPI(baseURL: AppConfig.webBaseURL, tokenProvider: { nil })
+        threadsAPI: ThreadsAPI = ThreadsAPI(baseURL: AppConfig.webBaseURL, tokenProvider: { nil }),
+        isSignedIn: @escaping @MainActor () -> Bool = { false }
     ) {
         self.api = api
         self.threadsAPI = threadsAPI
+        self.isSignedIn = isSignedIn
     }
 
     /// 사용자 질문 전송. 스트리밍 중 재진입, 첨부 로드 중 전송은 가드로 거부한다.
@@ -89,22 +105,22 @@ final class ChatStore {
             return false
         }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+        // 텍스트·첨부 둘 다 없을 때만 거부(첨부 단독 전송은 웹과 같이 허용)
+        guard !trimmed.isEmpty || pendingAttachment != nil else { return false }
 
         let attachment = pendingAttachment
         pendingAttachment = nil
         attachmentErrorMessage = nil
 
         lastErrorMessage = nil
-        messages.append(ChatMessage(role: "user", text: trimmed))
-        // outgoing: 오류 메시지(isError == true) + 빈 텍스트 메시지 제외.
+        // outgoing: 오류 메시지(isError == true) + 빈 assistant 제외. 이전 턴의 첨부 단독 질문은
+        // 첨부가 재전송되지 않으므로 표시 문구("첨부: 파일명")로 턴 구조만 보존한다.
         // 모델 컨텍스트 오염 방지: 오류는 사용자에게 로컬로만 표시하고 다음 요청에 재전송하지 않음.
-        var outgoing = messages.filter { !$0.isError && !$0.text.isEmpty }
-            .map { ChatOutgoingMessage(role: $0.role, text: $0.text) }
-        if let attachment, let lastIndex = outgoing.indices.last {
-            outgoing[lastIndex] = ChatOutgoingMessage(
-                role: outgoing[lastIndex].role, text: outgoing[lastIndex].text, attachment: attachment)
-        }
+        var outgoing = messages.filter { !$0.isError && !$0.displayText.isEmpty }
+            .map { ChatOutgoingMessage(role: $0.role, text: $0.displayText) }
+        // 이번 질문은 원문 그대로(첨부 단독이면 빈 텍스트 — 서버가 첨부 내용으로 검색한다).
+        outgoing.append(ChatOutgoingMessage(role: "user", text: trimmed, attachment: attachment))
+        messages.append(ChatMessage(role: "user", text: trimmed, attachmentFilename: attachment?.filename))
         let assistantIndex = messages.count
         messages.append(ChatMessage(role: "assistant", text: ""))
 
@@ -112,6 +128,7 @@ final class ChatStore {
         generation += 1
         let myGeneration = generation
         let requestThreadId = threadId
+        let expectsNewThread = requestThreadId == nil && isSignedIn()
 
         Announce.post("답변 작성 중")
 
@@ -121,6 +138,13 @@ final class ChatStore {
                 for try await event in api.stream(messages: outgoing, threadId: requestThreadId) {
                     guard !Task.isCancelled else { break }
                     self.apply(event, at: assistantIndex)
+                }
+                // 이력 저장 실패 판정: 서버가 무효 토큰을 익명으로 처리하거나 저장에 실패하면
+                // 오류 없이 threadId만 빠진다. 새 대화에서만 판정 가능(기존 대화 이어쓰기 실패는
+                // 응답에 신호가 없다). 통지는 답변 아래 정적 문구 — 완료 포커스 계약(§6)을
+                // 건드리지 않고 답변을 읽어 내려가면 만난다(추가 live 통지 없음).
+                if !Task.isCancelled, expectsNewThread, self.threadId == nil {
+                    self.messages[assistantIndex].historyNotSaved = true
                 }
             } catch {
                 // stop()에 의한 취소는 오류가 아니다. 부분 답변을 그대로 유지한다.

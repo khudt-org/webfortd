@@ -15,6 +15,11 @@ public enum MarkdownBlockParser {
     /// 언더스코어를 포함한 태그명의 의사 태그(속성 없는 열림/닫힘 토큰)만 제거한다.
     /// 유효 HTML 태그명은 언더스코어가 없어 매치하지 않으므로 기존 처리와 회귀 충돌 없음.
     /// `<개정 2022. 1. 18.>` 같은 한국어 표기는 첫 글자가 ASCII 문자가 아니라 안전.
+    /// 블록 HTML에서 벗길 토큰: 주석(`<!-- p.3 -->`, 여러 줄 가능)과 실제 태그 문법(ASCII 문자로
+    /// 시작하는 태그명 + 선택 속성)만. `<[^>]+>`처럼 꺾쇠 전체를 지우면 블록 안의
+    /// `<개정 2022. 1. 18.>`·`<표 3>` 같은 한국어 꺾쇠 표기까지 사라진다.
+    nonisolated(unsafe) private static let htmlTagOrComment = /<!--[\s\S]*?-->|<\/?[A-Za-z][A-Za-z0-9_-]*(?:\s[^<>]*)?\/?>/
+
     nonisolated(unsafe) private static let underscorePseudoTag = /<\/?[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+>/
 
     /// 펜스 코드블록 내부는 전처리하지 않는다(라인 기반 fence 토글).
@@ -73,7 +78,7 @@ public enum MarkdownBlockParser {
             // 웹 브라우저가 미지 태그를 무시하고 내부 텍스트만 렌더링하는 동작과 등가이며,
             // 태그 토큰(`<aside>`·`<page_header>` 등)은 스크린리더 낭독 노이즈일 뿐이다.
             // 태그만 있고 내부 텍스트가 없으면 블록 자체를 생략(빈 문단 방지).
-            let text = html.rawHTML.replacing(/<[^>]+>/, with: "")
+            let text = html.rawHTML.replacing(htmlTagOrComment, with: "")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return nil }
             return .paragraph(KBInline(attributed: AttributedString(text), plain: text))
