@@ -27,10 +27,15 @@ import {
 import { checkRateLimit, getClientIp, json429 } from '@/lib/rate-limit'
 import { retrieveChunks } from '@/lib/rag/retrieval.ts'
 import { buildSystemPrompt, clampHistory } from '@/lib/rag/prompt-builder.ts'
-import { getRequestAuth } from '@/lib/supabase/request-auth'
+import { getBearerJwt, getRequestAuth } from '@/lib/supabase/request-auth'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { parseHwpToMarkdown } from '@/lib/chat/upstage-parse.ts'
-import { ALLOWED_MIMES, MAX_FILE_SIZE } from '@/lib/chat/file-validation.ts'
+import {
+  ALLOWED_MIMES,
+  MAX_FILE_SIZE,
+  SIGNATURE_PROBE_BYTES,
+  matchesFileSignature,
+} from '@/lib/chat/file-validation.ts'
 import { getPreviewActive } from '@/lib/admin/preview'
 
 // M7.2 — HWP/HWPX MIME 집합. 서버에서 Upstage Document Parse로 markdown 추출.
@@ -62,7 +67,14 @@ function decodedByteLength(url: string): number {
   return Math.floor((base64.length * 3) / 4) - padding
 }
 
-function validateFileParts(parts: FilePartLike[]): { ok: true } | { ok: false; reason: string } {
+/** data URL 앞부분만 디코딩(시그니처 판정용). base64 4자 = 3바이트라 4의 배수로 자른다. */
+function decodeHead(url: string, bytes: number): Uint8Array {
+  const base64 = url.startsWith('data:') ? url.split(',')[1] ?? '' : url
+  const chars = Math.ceil(bytes / 3) * 4
+  return new Uint8Array(Buffer.from(base64.slice(0, chars), 'base64'))
+}
+
+export function validateFileParts(parts: FilePartLike[]): { ok: true } | { ok: false; reason: string } {
   if (parts.length > 1) {
     return { ok: false, reason: '한 번에 한 개 파일만 첨부할 수 있어요.' }
   }
@@ -75,6 +87,13 @@ function validateFileParts(parts: FilePartLike[]): { ok: true } | { ok: false; r
     }
     if (decodedByteLength(fp.url) > MAX_FILE_SIZE) {
       return { ok: false, reason: '파일이 너무 커요. 10MB 이하만 가능해요.' }
+    }
+    // E6: 확장자·MIME만 바꾼 파일(예: 실행 파일을 .png로)이 Gemini·Upstage로 넘어가지 않게.
+    if (!matchesFileSignature(fp.mediaType, decodeHead(fp.url, SIGNATURE_PROBE_BYTES))) {
+      return {
+        ok: false,
+        reason: '파일 내용이 형식과 맞지 않아요. 파일이 손상됐거나 확장자가 바뀌었는지 확인해 주세요.',
+      }
     }
   }
   return { ok: true }
@@ -239,6 +258,10 @@ export async function POST(req: Request): Promise<Response> {
 
       // M5: 로그인 사용자만 DB 저장. 비로그인은 클라이언트 useState 휘발 모드.
       let newThreadId: string | null = null
+      // E1: 저장을 기대할 만한 요청(로그인 or Bearer 제시)인데 저장되지 않았으면 신호를 낸다.
+      // Bearer가 무효면 user=null로 조용히 비로그인 취급되던 경로(iOS 토큰 만료)가 대표 사례.
+      // 헤더 없는 익명 요청은 휘발이 설계라 신호 대상이 아니다.
+      let historyUnsaved = !user && getBearerJwt(req) !== null
       if (user) {
         const admin = getAdminClient()
         // Finding(critical): RPC 인자는 jsonb 컬럼에 그대로 바인딩되므로 객체를 직접 전달한다.
@@ -278,24 +301,37 @@ export async function POST(req: Request): Promise<Response> {
           }
         } catch (err) {
           // PIPA: error.message는 retrieval.ts 패턴대로 마스킹된 형태로만 노출.
-          // 사용자 응답은 이미 streaming 완료 — silent (M6 retry UI 검토).
+          // 사용자 응답은 이미 streaming 완료 — metadata의 historyUnsaved로만 알린다.
           const masked = err instanceof Error ? err.message : String(err)
           console.error('[chat] history save failed:', masked)
+          historyUnsaved = true
         }
       }
 
       writer.write({
         type: 'message-metadata',
-        messageMetadata: {
-          sourceRefs: retrieval.sources,
-          ...(newThreadId ? { threadId: newThreadId } : {}),
-        },
+        messageMetadata: buildFinishMetadata(retrieval.sources, newThreadId, historyUnsaved),
       })
       writer.write({ type: 'finish' })
     },
   })
 
   return createUIMessageStreamResponse({ stream })
+}
+
+/**
+ * 응답 완료 시 message-metadata. `historyUnsaved`는 저장 실패 때만 싣는다(성공·익명은 키 없음).
+ */
+export function buildFinishMetadata<T>(
+  sourceRefs: T,
+  newThreadId: string | null,
+  historyUnsaved: boolean,
+): { sourceRefs: T; threadId?: string; historyUnsaved?: true } {
+  return {
+    sourceRefs,
+    ...(newThreadId ? { threadId: newThreadId } : {}),
+    ...(historyUnsaved ? { historyUnsaved: true as const } : {}),
+  }
 }
 
 /**

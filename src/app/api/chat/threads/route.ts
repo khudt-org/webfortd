@@ -5,6 +5,7 @@
  * 비로그인: 빈 배열 + 200 (UI가 분기 없이 안전하게 사용 가능).
  * M3(iOS): Bearer JWT가 있으면 우선 사용, 없으면 기존 쿠키 SSR 경로(웹 무회귀).
  */
+import { limitChatHistoryRead } from '@/lib/rate-limit'
 import { getRequestAuth } from '@/lib/supabase/request-auth'
 
 export const runtime = 'nodejs'
@@ -12,6 +13,9 @@ export const runtime = 'nodejs'
 const MAX_THREADS = 20 // spec §2 D6 — 시범 단계 절대 다수 사용자가 < 20 threads
 
 export async function GET(request: Request): Promise<Response> {
+  const limited = limitChatHistoryRead(request)
+  if (limited) return limited
+
   const { supabase, user } = await getRequestAuth(request)
 
   if (!user) {

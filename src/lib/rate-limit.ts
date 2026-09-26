@@ -80,3 +80,21 @@ export function json429(retryAfterSeconds: number): Response {
     },
   )
 }
+
+/**
+ * 채팅 이력 조회(`GET /api/chat/threads`·`/api/chat/threads/[id]`) 한도. 유료 호출은 없지만
+ * 매 호출이 인증 조회 + DB select라 루프 호출을 막는다. 두 라우트가 한 버킷을 공유한다
+ * (목록 1회 + 복원 여러 회가 한 화면 흐름이라). 정상 사용(화면 진입마다 수 회)에는 닿지 않는다.
+ */
+export const CHAT_HISTORY_READ_LIMIT = 60
+export const CHAT_HISTORY_READ_WINDOW_MS = 60_000
+
+/** 이력 조회 한도 검사. 초과면 429 응답, 아니면 null. */
+export function limitChatHistoryRead(req: Request): Response | null {
+  const rate = checkRateLimit(
+    `chat-history:${getClientIp(req)}`,
+    CHAT_HISTORY_READ_LIMIT,
+    CHAT_HISTORY_READ_WINDOW_MS,
+  )
+  return rate.ok ? null : json429(rate.retryAfterSeconds)
+}
