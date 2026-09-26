@@ -187,6 +187,88 @@ export async function upsertDocuments(
   return { totalUpserted: done }
 }
 
+// ---------- 고아 documents 정리 (content에 없는 slug) ----------
+
+/**
+ * documents upsert는 `onConflict: 'slug'`라 주소가 바뀌거나 지워진 문서의 구 행이 그대로 남는다
+ * (v3 → 3층 주소 체계 전환 때 구 slug 행이 published로 남아 RAG 검색에 걸린다). content에 없는 slug의
+ * 행을 지운다 — `document_chunks`·`wiki_backlinks`는 `on delete cascade`(0001)로 함께 사라진다.
+ *
+ * 안전장치: 지울 행이 DB 전체의 과반이면 `--allow-mass-delete` 없이는 중단한다(잘못된 작업 트리·
+ * 빈 인덱스로 돌린 sync가 DB를 비우는 사고 차단). content가 0건이면 플래그와 무관하게 중단한다.
+ */
+export const ORPHAN_MASS_DELETE_RATIO = 0.5
+
+export interface OrphanCleanupPlan {
+  orphans: string[]
+  dbTotal: number
+  blocked: boolean
+  reason: string | null
+}
+
+export function planOrphanCleanup(
+  dbSlugs: string[],
+  contentSlugs: string[],
+  opts: { allowMassDelete: boolean },
+): OrphanCleanupPlan {
+  const dbTotal = dbSlugs.length
+  if (contentSlugs.length === 0) {
+    return { orphans: [], dbTotal, blocked: true, reason: 'content 문서가 0건 — 인덱스 생성 실패 의심, 정리 중단' }
+  }
+  const keep = new Set(contentSlugs)
+  const orphans = dbSlugs.filter((s) => !keep.has(s)).sort()
+  if (orphans.length > dbTotal * ORPHAN_MASS_DELETE_RATIO && !opts.allowMassDelete) {
+    return {
+      orphans,
+      dbTotal,
+      blocked: true,
+      reason: `삭제 대상 ${orphans.length}건이 DB ${dbTotal}건의 과반 — 의도한 정리면 --allow-mass-delete로 다시 실행`,
+    }
+  }
+  return { orphans, dbTotal, blocked: false, reason: null }
+}
+
+/** documents의 slug 전체(PostgREST 1000행 상한을 넘어도 누락 없이 페이징). */
+export async function fetchAllDocumentSlugs(
+  client: SupabaseClient,
+  pageSize = 1000,
+): Promise<string[]> {
+  const slugs: string[] = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await client
+      .from('documents')
+      .select('slug')
+      .order('slug')
+      .range(from, from + pageSize - 1)
+    if (error) throw new Error(`documents slug fetch 실패: ${error.message}`)
+    const page = (data ?? []) as { slug: string }[]
+    slugs.push(...page.map((r) => r.slug))
+    if (page.length < pageSize) return slugs
+  }
+}
+
+export async function deleteOrphanDocuments(
+  client: SupabaseClient,
+  slugs: string[],
+  batchSize = 100,
+): Promise<number> {
+  let deleted = 0
+  for (let i = 0; i < slugs.length; i += batchSize) {
+    const batch = slugs.slice(i, i + batchSize)
+    const { error } = await client.from('documents').delete().in('slug', batch)
+    if (error) {
+      throw new Error(`고아 documents 삭제 실패 (slugs ${batch.slice(0, 3).join(', ')}...): ${error.message}`)
+    }
+    deleted += batch.length
+  }
+  return deleted
+}
+
+function describeOrphanPlan(plan: OrphanCleanupPlan): string {
+  const sample = plan.orphans.slice(0, 10).join(', ')
+  return `고아 documents ${plan.orphans.length}건 / DB ${plan.dbTotal}건${plan.orphans.length > 0 ? ` — 예: ${sample}${plan.orphans.length > 10 ? ' …' : ''}` : ''}`
+}
+
 // ---------- wiki_backlinks sync (delete + insert per source) ----------
 
 /**
@@ -329,6 +411,7 @@ export function invertBacklinksToSourcePerspective(
 
 interface MainOptions {
   dryRun: boolean
+  allowMassDelete: boolean
 }
 
 /**
@@ -337,8 +420,10 @@ interface MainOptions {
  * 동작 모드:
  *   - dry-run: kb-index 로드 → 전체 535건 transform → slug 중복 검증 → backlinks invert
  *     까지만 수행하고 종료. DB write 없음.
- *   - normal: dry-run 단계 + admin client로 documents upsert + slug→id fetch +
- *     wiki_backlinks sync(delete+insert per source).
+ *   - normal: dry-run 단계 + 고아 정리 계획(과반 삭제면 쓰기 전에 중단) + admin client로
+ *     documents upsert + 고아 documents 삭제 + slug→id fetch + wiki_backlinks sync(delete+insert per source).
+ *
+ * dry-run도 DB 접속 정보가 있으면 documents slug를 **읽기만** 해서 고아 정리 대상을 보고한다.
  *
  * 모든 단계는 idempotent. 중간 실패 시 재실행으로 회복 가능.
  *
@@ -388,6 +473,8 @@ async function main(opts: MainOptions): Promise<void> {
     )
   }
 
+  const contentSlugs = rows.map((r) => r.slug)
+
   if (opts.dryRun) {
     console.log(
       `[sync] DRY-RUN — transform ${rows.length} rows OK. DB write 생략.`,
@@ -396,11 +483,33 @@ async function main(opts: MainOptions): Promise<void> {
     console.log(
       `[sync] backlinks (source perspective): ${Object.keys(bySourceDry).length} source pages`,
     )
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
+      console.log('[sync] DRY-RUN — DB 접속 정보 없음, 고아 documents 점검 생략')
+      return
+    }
+    const plan = planOrphanCleanup(
+      await fetchAllDocumentSlugs(createCliAdminClient()),
+      contentSlugs,
+      { allowMassDelete: opts.allowMassDelete },
+    )
+    console.log(`[sync] DRY-RUN — ${describeOrphanPlan(plan)}`)
+    if (plan.blocked) console.log(`[sync] DRY-RUN — 적용 시 중단됨: ${plan.reason}`)
     return
   }
 
-  // 3. admin client + documents upsert (batch 50, 100/50 단위로 progress 로그)
+  // 3. 고아 정리 계획 — 쓰기 전에 판정해 과반 삭제면 아무것도 쓰지 않고 중단
   const client = createCliAdminClient()
+  const orphanPlan = planOrphanCleanup(
+    await fetchAllDocumentSlugs(client),
+    contentSlugs,
+    { allowMassDelete: opts.allowMassDelete },
+  )
+  console.log(`[sync] ${describeOrphanPlan(orphanPlan)}`)
+  if (orphanPlan.blocked) {
+    throw new Error(`[sync] 중단: ${orphanPlan.reason}`)
+  }
+
+  // 4. documents upsert (batch 50, 100/50 단위로 progress 로그)
   await upsertDocuments(client, rows, {
     batchSize: 50,
     onProgress: (done, total) => {
@@ -410,7 +519,13 @@ async function main(opts: MainOptions): Promise<void> {
     },
   })
 
-  // 4. slug → id 매핑 fetch
+  // 5. 고아 documents 삭제(청크·백링크는 cascade). upsert 뒤라 content 문서는 이미 최신이다.
+  if (orphanPlan.orphans.length > 0) {
+    const deleted = await deleteOrphanDocuments(client, orphanPlan.orphans)
+    console.log(`[sync] 고아 documents ${deleted}건 삭제`)
+  }
+
+  // 6. slug → id 매핑 fetch
   // PostgREST 기본 1000 row cap을 미래 1000+ docs 시점에도 비활성화하기 위해
   // .range(0, rows.length + 100)로 generous ceiling 명시 + assertIdRowsComplete로 검증.
   const { data: idRows, error: fetchError } = await client
@@ -433,7 +548,7 @@ async function main(opts: MainOptions): Promise<void> {
     slugToId[slug] = r.id as string
   }
 
-  // 5. backlinks invert + sync
+  // 7. backlinks invert + sync
   const bySource = invertBacklinksToSourcePerspective(wiki_backlinks)
   const backlinksResult = await syncWikiBacklinks(client, bySource, slugToId)
 
@@ -460,7 +575,8 @@ const invokedPath = process.argv[1]
 const modulePath = fileURLToPath(import.meta.url)
 if (invokedPath === modulePath) {
   const dryRun = process.argv.includes('--dry-run')
-  main({ dryRun }).catch((err) => {
+  const allowMassDelete = process.argv.includes('--allow-mass-delete')
+  main({ dryRun, allowMassDelete }).catch((err) => {
     console.error(err)
     process.exit(1)
   })

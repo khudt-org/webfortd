@@ -33,6 +33,9 @@ interface ChunkInsertRow {
   section: string | null
   embedding: number[]
   metadata: Record<string, unknown>
+  /** 마크다운 파일 원문(frontmatter 포함) 기준 [char_start, char_end). chunker.ts 참조 */
+  char_start: number | null
+  char_end: number | null
 }
 
 async function replaceDocumentChunks(
@@ -40,14 +43,15 @@ async function replaceDocumentChunks(
   documentId: string,
   chunks: Omit<ChunkInsertRow, 'document_id'>[],
 ): Promise<number> {
-  // SQL payload: char_start/char_end 제외 (Phase 3 M1에서 DEFERRED, Phase 4 backfill).
-  //   ChunkInsertRow에 새 컬럼 추가 시 여기도 함께 갱신할 것.
+  // ChunkInsertRow에 새 컬럼 추가 시 여기도 함께 갱신할 것(RPC는 0008 추출기 기준 키만 읽는다).
   const payload = chunks.map((c) => ({
     chunk_index: c.chunk_index,
     chunk_text: c.chunk_text,
     embedding: c.embedding,
     metadata: c.metadata,
     section: c.section,
+    char_start: c.char_start,
+    char_end: c.char_end,
   }))
   const { data, error } = await client.rpc('replace_document_chunks', {
     p_document_id: documentId,
@@ -204,6 +208,8 @@ async function main(): Promise<void> {
         section: c.metadata.section,
         embedding,
         metadata: c.metadata as unknown as Record<string, unknown>,
+        char_start: c.char_start,
+        char_end: c.char_end,
       })
     }
     rowsByDoc.set(documentId, rows)
