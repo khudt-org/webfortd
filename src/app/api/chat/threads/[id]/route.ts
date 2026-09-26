@@ -2,6 +2,7 @@
  * M3(iOS): thread 메시지 복원. 웹 이력 복원 UX에도 재사용될 공용 자산.
  * RLS가 본인 thread·메시지만 반환 보장. 비로그인 401, 남의 thread는 RLS로 404.
  */
+import { limitChatHistoryRead } from '@/lib/rate-limit'
 import { getRequestAuth } from '@/lib/supabase/request-auth'
 
 export const runtime = 'nodejs'
@@ -31,6 +32,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  const limited = limitChatHistoryRead(request)
+  if (limited) return limited
+
   const { id } = await params
   if (!UUID_RE.test(id)) {
     return Response.json({ error: '대화를 찾을 수 없어요.' }, { status: 404 })
