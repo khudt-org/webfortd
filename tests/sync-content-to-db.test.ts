@@ -10,6 +10,9 @@ import {
   syncWikiBacklinks,
   invertBacklinksToSourcePerspective,
   assertIdRowsComplete,
+  planOrphanCleanup,
+  fetchAllDocumentSlugs,
+  deleteOrphanDocuments,
 } from '../scripts/sync-content-to-db.ts'
 
 describe('transformDocumentRow', () => {
@@ -389,5 +392,98 @@ describe('assertIdRowsComplete (paging guard)', () => {
       slug: `s-${i}`,
     }))
     assert.doesNotThrow(() => assertIdRowsComplete(idRows, 535))
+  })
+})
+
+describe('planOrphanCleanup (C9 ② 구 주소 행 정리)', () => {
+  test('content에 없는 slug만 고아, 정렬해서 반환', () => {
+    const plan = planOrphanCleanup(['c', 'a', 'b', 'old'], ['a', 'b', 'c', 'new'], { allowMassDelete: false })
+    assert.deepEqual(plan.orphans, ['old'])
+    assert.equal(plan.blocked, false)
+  })
+
+  test('고아가 DB의 과반이면 플래그 없이는 중단', () => {
+    const plan = planOrphanCleanup(['o1', 'o2', 'k'], ['k'], { allowMassDelete: false })
+    assert.equal(plan.blocked, true)
+    assert.match(plan.reason!, /--allow-mass-delete/)
+    assert.deepEqual(plan.orphans, ['o1', 'o2'])
+  })
+
+  test('정확히 절반은 과반이 아님', () => {
+    assert.equal(planOrphanCleanup(['o', 'k'], ['k'], { allowMassDelete: false }).blocked, false)
+  })
+
+  test('--allow-mass-delete면 과반도 진행', () => {
+    const plan = planOrphanCleanup(['o1', 'o2', 'k'], ['k'], { allowMassDelete: true })
+    assert.equal(plan.blocked, false)
+    assert.equal(plan.orphans.length, 2)
+  })
+
+  test('content 0건이면 플래그와 무관하게 중단', () => {
+    const plan = planOrphanCleanup(['a'], [], { allowMassDelete: true })
+    assert.equal(plan.blocked, true)
+    assert.deepEqual(plan.orphans, [])
+  })
+})
+
+describe('fetchAllDocumentSlugs / deleteOrphanDocuments (mocked client)', () => {
+  test('페이지 크기만큼 차면 다음 페이지를 읽는다', async () => {
+    const all = ['a', 'b', 'c', 'd', 'e']
+    const ranges: string[] = []
+    const mockClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: async (from: number, to: number) => {
+              ranges.push(`${from}-${to}`)
+              return { data: all.slice(from, to + 1).map((slug) => ({ slug })), error: null, count: all.length }
+            },
+          }),
+        }),
+      }),
+    } as any
+    assert.deepEqual(await fetchAllDocumentSlugs(mockClient, 2), all)
+    assert.deepEqual(ranges, ['0-1', '2-3', '4-5'])
+  })
+
+  test('서버가 pageSize보다 적게 잘라 주면(max_rows 불일치) 조기 종료 대신 throw', async () => {
+    const all = ['a', 'b', 'c', 'd', 'e']
+    const mockClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: async (from: number) => ({
+              data: all.slice(from, from + 1).map((slug) => ({ slug })),
+              error: null,
+              count: all.length,
+            }),
+          }),
+        }),
+      }),
+    } as any
+    await assert.rejects(fetchAllDocumentSlugs(mockClient, 2), /조회 누락/)
+  })
+
+  test('배치로 나눠 slug 기준 삭제, 오류는 throw', async () => {
+    const calls: string[][] = []
+    const mockClient = {
+      from: (table: string) => ({
+        delete: () => ({
+          in: async (col: string, vals: string[]) => {
+            assert.equal(table, 'documents')
+            assert.equal(col, 'slug')
+            calls.push(vals)
+            return { error: null }
+          },
+        }),
+      }),
+    } as any
+    assert.equal(await deleteOrphanDocuments(mockClient, ['a', 'b', 'c'], 2), 3)
+    assert.deepEqual(calls, [['a', 'b'], ['c']])
+
+    const failing = {
+      from: () => ({ delete: () => ({ in: async () => ({ error: { message: 'boom' } }) }) }),
+    } as any
+    await assert.rejects(deleteOrphanDocuments(failing, ['x']), /boom/)
   })
 })
