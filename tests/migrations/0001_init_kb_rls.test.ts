@@ -1,9 +1,10 @@
 /**
  * webfortd Phase 2 M2 — RLS 통합 테스트 fixture 확장 (M1 carry-over 3)
  *
- * M2 sync 적용 후 운영 DB 상태(documents 535 draft + wiki_backlinks ~1000건)를
- * 전제로 admin/anon round-trip을 검증한다. `tests/migrations/0001_init_kb.test.ts`
- * (5건 smoke)와 별도 파일로, 총 5 + 7 = 12건이 `npm run test:integration`에서 실행.
+ * 운영 DB에 draft·published 문서가 각각 1건 이상 있다는 전제만으로 admin/anon
+ * 양방향 RLS를 검증한다. 행 수는 콘텐츠 공개 상태에 따라 계속 바뀌므로
+ * (535 draft → 535 published + FAQ draft 9 …) 절대 수치를 가정하지 않고,
+ * 상태 토글 없이 기존 행으로 판정해 운영 DB에 쓰지 않는다.
  *
  * 환경 트랩 가드 (Task 5 발견):
  *   `~/.zshrc:64`에 다른 프로젝트의 SUPABASE_SECRET_KEY가 export되어 있으면
@@ -41,6 +42,8 @@ const skipReason =
 describe('0001_init_kb RLS fixture (M2 sync 후)', { skip: skipReason }, () => {
   let anon: SupabaseClient
   let admin: SupabaseClient
+  let draftIds: string[] = []
+  let publishedSample: { id: string; slug: string } | null = null
 
   before(() => {
     // shadowing 차단: .env.local 값을 process.env에 강제 override (Task 5 발견 트랩).
@@ -55,13 +58,25 @@ describe('0001_init_kb RLS fixture (M2 sync 후)', { skip: skipReason }, () => {
     })
   })
 
-  test('precondition: documents에 draft rows 535건 (admin)', async () => {
-    const { count, error } = await admin
+  test('precondition: draft·published 문서가 각각 1건 이상 (admin)', async () => {
+    const { data: drafts, error: e1 } = await admin
       .from('documents')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('status', 'draft')
-    assert.equal(error, null)
-    assert.ok(count !== null && count >= 500, `draft count 너무 적음: ${count}`)
+      .limit(200)
+    assert.equal(e1, null)
+    draftIds = (drafts ?? []).map((d) => d.id)
+    assert.ok(draftIds.length > 0, 'draft 문서가 없어 anon 차단 방향을 검증할 수 없음')
+
+    const { data: pub, error: e2 } = await admin
+      .from('documents')
+      .select('id, slug')
+      .eq('status', 'published')
+      .limit(1)
+      .single()
+    assert.equal(e2, null)
+    publishedSample = pub
+    assert.ok(publishedSample, 'published 문서가 없어 anon 노출 방향을 검증할 수 없음')
   })
 
   test('anon은 draft documents를 read할 수 없음', async () => {
@@ -72,92 +87,57 @@ describe('0001_init_kb RLS fixture (M2 sync 후)', { skip: skipReason }, () => {
       .limit(5)
     assert.equal(error, null) // RLS는 row 필터, 에러는 안 남
     assert.deepEqual(data, []) // 모두 차단되어 빈 배열
+
+    // id로 직접 지목해도 보이지 않아야 한다(status 필터에 기대지 않는 확인)
+    const { data: byId } = await anon.from('documents').select('id').in('id', draftIds)
+    assert.deepEqual(byId, [])
   })
 
-  test('admin이 한 페이지를 published로 전환 + anon에게 노출 + 원복', async () => {
-    // 첫 draft 페이지 1건 선택
-    const { data: sample } = await admin
+  test('anon은 published 문서를 id로 read할 수 있음', async () => {
+    assert.ok(publishedSample)
+    const { data: anonRead, error } = await anon
       .from('documents')
-      .select('id, slug')
-      .eq('status', 'draft')
-      .limit(1)
+      .select('id, slug, status')
+      .eq('id', publishedSample.id)
       .single()
-    assert.ok(sample)
-
-    // published 전환
-    const { error: e1 } = await admin
-      .from('documents')
-      .update({ status: 'published' })
-      .eq('id', sample.id)
-    assert.equal(e1, null)
-
-    try {
-      // anon에서 노출 확인
-      const { data: anonRead } = await anon
-        .from('documents')
-        .select('id, slug, status')
-        .eq('id', sample.id)
-        .single()
-      assert.equal(anonRead?.status, 'published')
-      assert.equal(anonRead?.slug, sample.slug)
-    } finally {
-      // 원복 (테스트 격리) — 예외 발생 시에도 finally 보장
-      await admin
-        .from('documents')
-        .update({ status: 'draft' })
-        .eq('id', sample.id)
-    }
+    assert.equal(error, null)
+    assert.equal(anonRead?.status, 'published')
+    assert.equal(anonRead?.slug, publishedSample.slug)
   })
 
-  test('anon은 wiki_backlinks를 source 기준으로 차단 (draft 부모)', async () => {
+  test('anon은 draft 문서의 wiki_backlinks를 read할 수 없음', async () => {
     const { data } = await anon
       .from('wiki_backlinks')
       .select('id')
-      .limit(5)
+      .in('source_doc_id', draftIds)
     assert.deepEqual(data, [])
   })
 
   test('published 페이지의 backlinks는 anon이 read 가능 (D6 — target_slug 노출 invariant)', async () => {
-    // reviewer I-1: backlinks 보유한 source를 *명시적*으로 선택 (silent return 차단)
-    // 임의 첫 row 방식은 그 row가 backlinks 0건이면 D6 검증이 silently skip됨
+    // backlinks를 가진 published source를 *명시적*으로 고른다(silent pass 차단)
+    const { data: pubDocs } = await admin
+      .from('documents')
+      .select('id')
+      .eq('status', 'published')
+      .limit(200)
+    const pubIds = (pubDocs ?? []).map((d) => d.id)
     const { data: candidates } = await admin
       .from('wiki_backlinks')
       .select('source_doc_id')
-      .limit(50)
+      .in('source_doc_id', pubIds)
+      .limit(1)
     const sourceDocId = candidates?.[0]?.source_doc_id
     assert.ok(
       sourceDocId,
-      'wiki_backlinks fixture가 비어있어 D6 invariant 검증 불가 — M2 sync 누락 의심',
+      'published 문서의 wiki_backlinks가 없어 D6 invariant 검증 불가 — sync 누락 의심',
     )
 
-    const { data: sourceDoc } = await admin
-      .from('documents')
-      .select('id, slug')
-      .eq('id', sourceDocId)
-      .eq('status', 'draft')
-      .single()
-    assert.ok(sourceDoc, `source_doc_id ${sourceDocId}가 documents 테이블 또는 draft 상태에 없음`)
-
-    // published 전환
-    await admin
-      .from('documents')
-      .update({ status: 'published' })
-      .eq('id', sourceDoc.id)
-    try {
-      // anon이 backlinks read 가능
-      const { data: anonBlinks } = await anon
-        .from('wiki_backlinks')
-        .select('id, target_slug')
-        .eq('source_doc_id', sourceDoc.id)
-      assert.ok((anonBlinks?.length ?? 0) > 0)
-      // D6: target_slug가 draft 문서를 가리키더라도 노출 OK (slug는 git public)
-    } finally {
-      // 원복 — 예외 발생 시에도 finally 보장
-      await admin
-        .from('documents')
-        .update({ status: 'draft' })
-        .eq('id', sourceDoc.id)
-    }
+    const { data: anonBlinks } = await anon
+      .from('wiki_backlinks')
+      .select('id, target_slug')
+      .eq('source_doc_id', sourceDocId)
+    assert.ok((anonBlinks?.length ?? 0) > 0)
+    // D6: target_slug가 draft 문서를 가리키더라도 노출 OK (slug는 저장소에 공개)
   })
 
   test('anon은 wiki_backlinks insert 불가 (RLS)', async () => {
@@ -172,9 +152,11 @@ describe('0001_init_kb RLS fixture (M2 sync 후)', { skip: skipReason }, () => {
   })
 
   test('anon은 documents status를 update 불가', async () => {
+    // draft 문서를 대상으로 한다(anon에게 보이지 않는 행 — 가장 흔한 누수 경로)
     const { data: sample } = await admin
       .from('documents')
-      .select('id')
+      .select('id, status, updated_at')
+      .eq('status', 'draft')
       .limit(1)
       .single()
     assert.ok(sample)
@@ -194,18 +176,15 @@ describe('0001_init_kb RLS fixture (M2 sync 후)', { skip: skipReason }, () => {
         `anon update가 row 변경 안 함 (RLS row visibility), count=${count}`,
       )
 
-      // 추가 검증: admin이 즉시 다시 읽어서 status가 여전히 'draft'인지 확인
-      // (RLS 누수로 실제 변경이 발생했다면 이 단계에서 published로 잡힘)
+      // 추가 검증: admin이 즉시 다시 읽어 원래 값 그대로인지 확인
+      // (RLS 누수로 실제 변경이 발생했다면 status·updated_at이 바뀐다)
       const { data: postCheck } = await admin
         .from('documents')
-        .select('status')
+        .select('status, updated_at')
         .eq('id', sample.id)
         .single()
-      assert.equal(
-        postCheck?.status,
-        'draft',
-        'anon update가 실제로 row를 변경했음 (RLS 누수)',
-      )
+      assert.equal(postCheck?.status, sample.status, 'anon update가 실제로 row를 변경했음 (RLS 누수)')
+      assert.equal(postCheck?.updated_at, sample.updated_at, 'anon update가 updated_at을 바꿨음 (RLS 누수)')
     } else {
       assert.match(error.code ?? '', /42501|PGRST/)
     }

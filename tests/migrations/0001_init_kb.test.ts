@@ -11,6 +11,21 @@ const skipReason = !url || !anonKey
   ? 'NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 미설정 — `npm run test:integration` 사용 필요'
   : false
 
+// anon 클라이언트로 부모 문서를 다시 읽어 전부 published인지 확인한다.
+// anon이 부모를 못 읽으면(= draft 등) 파생 행이 새어 나온 것이다.
+async function assertParentsPublished(client: SupabaseClient, ids: string[]) {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return
+  const { data, error } = await client
+    .from('documents')
+    .select('id, status')
+    .in('id', unique)
+  assert.equal(error, null)
+  const visible = new Set((data ?? []).filter((d) => d.status === 'published').map((d) => d.id))
+  const orphans = unique.filter((id) => !visible.has(id))
+  assert.deepEqual(orphans, [], 'anon에게 published 아닌 문서의 파생 행이 노출됨')
+}
+
 describe('0001_init_kb migration', { skip: skipReason }, () => {
   let supabase: SupabaseClient
 
@@ -19,31 +34,34 @@ describe('0001_init_kb migration', { skip: skipReason }, () => {
     supabase = createClient(url!, anonKey!)
   })
 
-  test('documents 테이블이 존재하고 anon select 가능 (published 0건)', async () => {
+  // 운영 DB의 행 수는 콘텐츠 공개 상태에 따라 계속 바뀐다(0건 → 535건 → …).
+  // 절대 수치 대신 "anon에게 보이는 것은 published 문서와 그 파생 행뿐"이라는 RLS 불변식을 단언한다.
+  test('documents 테이블이 존재하고 anon에게는 published만 보인다', async () => {
     const { data, error } = await supabase
       .from('documents')
       .select('id, slug, status')
-      .limit(1)
+      .limit(50)
     assert.equal(error, null, error ? `select 실패: ${error.message}` : '')
-    assert.deepEqual(data, [])
+    const leaked = (data ?? []).filter((d) => d.status !== 'published')
+    assert.deepEqual(leaked, [], 'anon에게 published 아닌 문서가 노출됨')
   })
 
-  test('document_chunks 테이블이 존재하고 anon select 가능', async () => {
+  test('document_chunks 테이블이 존재하고 anon에게는 published 문서의 청크만 보인다', async () => {
     const { data, error } = await supabase
       .from('document_chunks')
-      .select('id')
-      .limit(1)
+      .select('id, document_id')
+      .limit(50)
     assert.equal(error, null)
-    assert.deepEqual(data, [])
+    await assertParentsPublished(supabase, (data ?? []).map((r) => r.document_id))
   })
 
-  test('wiki_backlinks 테이블이 존재하고 anon select 가능', async () => {
+  test('wiki_backlinks 테이블이 존재하고 anon에게는 published 문서의 백링크만 보인다', async () => {
     const { data, error } = await supabase
       .from('wiki_backlinks')
-      .select('id')
-      .limit(1)
+      .select('id, source_doc_id')
+      .limit(50)
     assert.equal(error, null)
-    assert.deepEqual(data, [])
+    await assertParentsPublished(supabase, (data ?? []).map((r) => r.source_doc_id))
   })
 
   test('taxonomy_terms 테이블이 존재하고 anon select 가능 (RLS true)', async () => {

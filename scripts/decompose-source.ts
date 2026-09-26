@@ -96,14 +96,14 @@ const OVERVIEW_MIN_CHARS = 100
 const MERGE_MAX_CHARS = 100
 // 2026-08-30 위원장 결정: 델파이 2차 특수학교용(4.9만 자)이 한 건으로 들어가도록 5만 → 5.5만(예산 5.25만).
 // validate-frontmatter.ts BODY_MAX_CHARS와 같은 값이어야 한다.
-const SPLIT_MAX_CHARS = 55_000
+export const SPLIT_MAX_CHARS = 55_000
 /** 분할 판정 예산 — 분할 뒤에 붙는 관련 페이지 블록·이미지 alt 줄(최대 ~2,000자)을 미리 뺀다 */
-const SPLIT_BUDGET_CHARS = SPLIT_MAX_CHARS - 2_500
+export const SPLIT_BUDGET_CHARS = SPLIT_MAX_CHARS - 2_500
 const RELATED_MAX = 20
 
 // ---------- 입력 파일 → source 메타 매핑 ----------
 
-interface SourceFileMeta {
+export interface SourceFileMeta {
   sourceOrigin: string
   slugPrefix: string
   /** 분해 단위 헤딩 레벨 */
@@ -418,7 +418,7 @@ function processBodyImages(
   return { body: result, imagePatternCount, todoMarkers }
 }
 
-function stripPageComments(body: string): string {
+export function stripPageComments(body: string): string {
   return body
     .replace(new RegExp(PAGE_COMMENT_RE.source + '[ \t]*\n?', 'g'), '')
     .replace(/\n{3,}/g, '\n\n')
@@ -426,7 +426,7 @@ function stripPageComments(body: string): string {
 }
 
 /** 본문 안 제목 수준을 가장 얕은 것이 `##`이 되도록 평행 이동(페이지 H1 아래 h2부터). */
-function normalizeBodyHeadings(body: string): string {
+export function normalizeBodyHeadings(body: string): string {
   const masked = maskCodeBlocks(body)
   const levels: number[] = []
   const re = /^(#{1,6})\s+\S/gm
@@ -448,7 +448,7 @@ function normalizeBodyHeadings(body: string): string {
 }
 
 /** 표 블록 경계에서만 자르는 5.5만 자 분할. 단일 표가 한도를 넘으면 그대로 두고 경고. */
-function splitLargeBody(body: string): { parts: string[]; oversizedTable: boolean } {
+export function splitLargeBody(body: string): { parts: string[]; oversizedTable: boolean } {
   if (body.length <= SPLIT_BUDGET_CHARS) return { parts: [body], oversizedTable: false }
   const lines = body.split('\n')
   // 블록 = 표(연속 `|` 줄) 또는 빈 줄로 구분되는 문단
@@ -489,7 +489,7 @@ function splitLargeBody(body: string): { parts: string[]; oversizedTable: boolea
   return { parts, oversizedTable }
 }
 
-function textLength(body: string): number {
+export function textLength(body: string): number {
   return body.replace(/\s+/g, '').length
 }
 
@@ -508,7 +508,7 @@ interface OutlineNode {
   endOffset: number
 }
 
-interface PagePlan {
+export interface PagePlan {
   slug: string
   title: string
   body: string
@@ -544,7 +544,7 @@ function findPageComment(body: string, beforeOffset: number): { page: string; pd
  * 다음 쪽의 주석) 세지 않는다 — 2차 검수에서 `source_page_end`가 다음 절 시작 쪽으로 한 쪽 넘치던 원인.
  * `pdf` 접두 라벨(인쇄 쪽 번호 없는 쪽)도 끝 쪽으로 쓰지 않는다.
  */
-function lastPageCommentIn(body: string, start: number, end: number): string | null {
+export function lastPageCommentIn(body: string, start: number, end: number): string | null {
   const re = new RegExp(PAGE_COMMENT_RE.source, 'g')
   re.lastIndex = start
   let last: string | null = null
@@ -567,7 +567,7 @@ const FORM_LABEL_RE = /^\[(별지|서식|부록)[^\]]*\]\s*$/
  * 두는데, 분해는 제목 앞 줄을 앞 절에 귀속시켜 서약서 문서 끝에 다음 서식의 이름표가 남고 자기 이름표는 앞
  * 문서로 갔다. 라벨과 제목 사이에는 빈 줄·쪽 주석만 허용하며 쪽 주석은 제자리에 둔다(쪽 계산 불변).
  */
-function attachFormLabels(body: string, warnings: DecomposeWarning[]): string {
+export function attachFormLabels(body: string, warnings: DecomposeWarning[]): string {
   const lines = body.split('\n')
   const maskedLines = maskCodeBlocks(body).split('\n')
   const pageCommentLine = new RegExp(`^\\s*${PAGE_COMMENT_RE.source}\\s*$`)
@@ -595,7 +595,7 @@ function attachFormLabels(body: string, warnings: DecomposeWarning[]): string {
 }
 
 /** 제목 후보 제외 줄을 굵게로 강등한 본문(위치 보존을 위해 길이 유지 안 함 — 분해 전에 한 번만 적용). */
-function demoteNonHeadings(body: string, warnings: DecomposeWarning[]): string {
+export function demoteNonHeadings(body: string, warnings: DecomposeWarning[]): string {
   const masked = maskCodeBlocks(body)
   const lines = body.split('\n')
   const maskedLines = masked.split('\n')
@@ -610,7 +610,7 @@ function demoteNonHeadings(body: string, warnings: DecomposeWarning[]): string {
   return lines.join('\n')
 }
 
-function buildOutlinePages(
+export function buildOutlinePages(
   body: string,
   meta: SourceFileMeta,
   warnings: DecomposeWarning[],
@@ -801,7 +801,7 @@ function buildArticlePlans(body: string, meta: SourceFileMeta): PagePlan[] {
 
 // ---------- 후처리: 병합·분할·제목·관련 페이지 ----------
 
-function outlineKindsAtOrAbove(plan: PagePlan, planKinds: Map<string, OutlineKind>): Set<OutlineKind> {
+export function outlineKindsAtOrAbove(plan: PagePlan, planKinds: Map<string, OutlineKind>): Set<OutlineKind> {
   const kinds = new Set<OutlineKind>()
   if (plan.numberKind !== 'none' && plan.numberKind !== 'appendix' && plan.numberKind !== 'appendix-root') kinds.add(plan.numberKind)
   const parentKind = planKinds.get(plan.parentPath)
@@ -809,7 +809,7 @@ function outlineKindsAtOrAbove(plan: PagePlan, planKinds: Map<string, OutlineKin
   return kinds
 }
 
-function detectRangeViolations(body: string, kinds: Set<OutlineKind>): string[] {
+export function detectRangeViolations(body: string, kinds: Set<OutlineKind>): string[] {
   if (kinds.size === 0) return []
   const masked = maskCodeBlocks(body)
   const hits: string[] = []
@@ -820,6 +820,36 @@ function detectRangeViolations(body: string, kinds: Set<OutlineKind>): string[] 
     if (n.kind !== 'none' && kinds.has(n.kind)) hits.push(t.slice(0, 50))
   }
   return hits
+}
+
+/**
+ * 빈 조각 병합(100자 미만 → 다음 형제, 없으면 이전 형제). 개요 페이지는 이미 100자 이상이라 대상이 아니다.
+ * 병합되는 조각은 `## 원제목` 소절이 되고 그 안의 제목은 한 단계씩 내린다. 대상 plan의 body를 제자리에서 바꾼다.
+ */
+export function mergeShortPlans(plans: PagePlan[], warnings: DecomposeWarning[]): PagePlan[] {
+  const merged = new Set<string>()
+  for (let i = 0; i < plans.length; i++) {
+    const p = plans[i]
+    if (merged.has(p.slug)) continue
+    if (textLength(p.body) >= MERGE_MAX_CHARS) continue
+    const sibling = (dir: 1 | -1): PagePlan | undefined => {
+      for (let j = i + dir; j >= 0 && j < plans.length; j += dir) {
+        if (merged.has(plans[j].slug)) continue
+        if (plans[j].parentPath === p.parentPath && !plans[j].isOverview) return plans[j]
+        if (plans[j].level < p.level) break
+      }
+      return undefined
+    }
+    const target = sibling(1) ?? sibling(-1)
+    if (!target) continue
+    const demoted = p.body.replace(/^(#{2,5})(\s+\S)/gm, '#$1$2')
+    const fragment = `## ${p.title}\n\n${demoted}`.trim()
+    const targetIsAfter = target.order > p.order
+    target.body = targetIsAfter ? `${fragment}\n\n${target.body}`.trim() : `${target.body}\n\n${fragment}`.trim()
+    merged.add(p.slug)
+    warnings.push({ kind: 'merged', slug: p.slug, detail: `「${p.title}」(${textLength(p.body)}자) → ${target.slug}` })
+  }
+  return plans.filter((p) => !merged.has(p.slug))
 }
 
 // ---------- 단일 파일 분해 ----------
@@ -882,32 +912,7 @@ export function decomposeFile(args: {
     return false
   })
 
-  // 빈 조각 병합(100자 미만 → 다음 형제, 없으면 이전 형제). 개요 페이지는 이미 100자 이상.
-  if (meta.slugScheme === 'outline') {
-    const merged = new Set<string>()
-    for (let i = 0; i < plans.length; i++) {
-      const p = plans[i]
-      if (merged.has(p.slug)) continue
-      if (textLength(p.body) >= MERGE_MAX_CHARS) continue
-      const sibling = (dir: 1 | -1): PagePlan | undefined => {
-        for (let j = i + dir; j >= 0 && j < plans.length; j += dir) {
-          if (merged.has(plans[j].slug)) continue
-          if (plans[j].parentPath === p.parentPath && !plans[j].isOverview) return plans[j]
-          if (plans[j].level < p.level) break
-        }
-        return undefined
-      }
-      const target = sibling(1) ?? sibling(-1)
-      if (!target) continue
-      const demoted = p.body.replace(/^(#{2,5})(\s+\S)/gm, '#$1$2')
-      const fragment = `## ${p.title}\n\n${demoted}`.trim()
-      const targetIsAfter = target.order > p.order
-      target.body = targetIsAfter ? `${fragment}\n\n${target.body}`.trim() : `${target.body}\n\n${fragment}`.trim()
-      merged.add(p.slug)
-      warnings.push({ kind: 'merged', slug: p.slug, detail: `「${p.title}」(${textLength(p.body)}자) → ${target.slug}` })
-    }
-    plans = plans.filter((p) => !merged.has(p.slug))
-  }
+  if (meta.slugScheme === 'outline') plans = mergeShortPlans(plans, warnings)
 
   // 5.5만 자 분할(표 경계)
   const expanded: PagePlan[] = []
@@ -1447,7 +1452,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  process.stderr.write(`[decompose] 실패: ${(e as Error).message}\n${(e as Error).stack}\n`)
-  process.exit(1)
-})
+// 직접 실행할 때만 main을 돈다(단위 테스트가 규칙 함수를 import할 수 있게)
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  main().catch((e) => {
+    process.stderr.write(`[decompose] 실패: ${(e as Error).message}\n${(e as Error).stack}\n`)
+    process.exit(1)
+  })
+}
