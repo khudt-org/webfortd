@@ -43,15 +43,13 @@ function startsWith(buf: Uint8Array, sig: number[], offset = 0): boolean {
 
 /**
  * 선언 MIME과 파일 앞부분 바이트(magic bytes)가 맞는지. 화이트리스트 밖 MIME은 false.
- * PDF는 명세상 헤더 앞 잡음이 허용돼 첫 1024바이트 안에서 `%PDF-`를 찾는다.
+ * 모든 형식을 오프셋 0에서만 본다. PDF 명세는 헤더 앞 잡음을 허용하지만, 그 관용을 따르면
+ * 실행 파일 헤더 뒤에 `%PDF-`만 심은 파일이 통과한다(리뷰 PoC). 정상 PDF는 0에서 시작한다.
  */
 export function matchesFileSignature(mime: string, buf: Uint8Array): boolean {
   switch (mime) {
     case 'application/pdf':
-      for (let i = 0; i <= Math.min(1024, buf.length - PDF.length); i++) {
-        if (startsWith(buf, PDF, i)) return true
-      }
-      return false
+      return startsWith(buf, PDF)
     case 'image/png':
       return startsWith(buf, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     case 'image/jpeg':

@@ -31,10 +31,11 @@ describe('matchesFileSignature', () => {
     assert.equal(matchesFileSignature('application/x-hwp', ascii('HWP Document File V3.00 ')), true)
   })
 
-  it('PDF 앞에 잡음 바이트가 있어도 1024바이트 안에 헤더가 있으면 통과', () => {
-    const buf = new Uint8Array(20 + PDF.length)
-    buf.set(PDF, 20)
-    assert.equal(matchesFileSignature('application/pdf', buf), true)
+  it('PDF 헤더가 오프셋 0이 아니면 거부(실행 파일 뒤에 %PDF-만 심은 폴리글랏)', () => {
+    const buf = new Uint8Array(500 + PDF.length)
+    buf.set([0x4d, 0x5a, 0x90, 0x00], 0)
+    buf.set(PDF, 500)
+    assert.equal(matchesFileSignature('application/pdf', buf), false)
   })
 
   it('선언과 내용이 다르면 거부', () => {
