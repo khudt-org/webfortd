@@ -2,6 +2,15 @@
 
 > 날짜별 변경 이력(마일스톤 경계 갱신). 2026-07-10 이전 이력은 git log와 CLAUDE.md §Phase 진행 요약이 정본(지연 생성 원칙에 따라 이 파일은 iOS 트랙 진입 시점부터 시작).
 
+## 2026-09-26 — 백로그 일괄 처리: a11y 게이트 가드·RAG 공개 전 준비·API 보강·iOS/테스트 부채 (PR #121~#125)
+
+- **a11y 게이트(PR #121, PORTS 역이식 gildongmu@709ea1b4)**: 게이트 전용 포트 3100 + 서버 재사용 금지, `expectNoAxeViolations`가 응답 200·최종 경로를 단언(404·리다이렉트 화면을 감사하고 통과하던 구멍). 40 passed.
+- **RAG 공개 전 준비(PR #125, C9 ①② + E7)**: 청크에서 `## 관련 페이지` 제거·위키링크 표시명 치환, 청크 `char_start`/`char_end`(원문 파일 기준), `kb:sync` 고아 문서 정리(과반이면 `--allow-mass-delete` 없이 중단, `nightly-embed` 수동 실행 입력 `allow_mass_delete`). 재개 첫 실행 절차는 BACKLOG C9·`content/.embed-paused`.
+- **API 보강(PR #124, E1·E6)**: 첨부 magic bytes 검사(전 형식 오프셋 0 — 리뷰가 PDF 1024바이트 관용의 폴리글랏 우회를 잡았다), 이력 조회 IP당 분당 60회, 완료 metadata `historyUnsaved`(무효 Bearer·저장 실패).
+- **iOS 부채(PR #123, E1~E4)**: 이력 저장 실패 문구(서버 신호 + 구 서버 대비 판정), 첨부 단독 전송, HTMLBlock 정규식 협소화(`<개정 …>` 보존), 자료실·미디어 빈 목록 상태. Kit 테스트 53.
+- **테스트 부채(PR #122, E5·E8)**: `tests/migrations/0001*` 행 수 가정 → 가시성 불변식(운영 DB 토글 제거), 분해 규칙 단위 테스트 20건(dry-run 출력 불변 증명).
+- **편집기 런북(B4)**: `docs/EDITOR_RUNBOOK.md`(빌드 실패 revert·긴급 RAG 갱신·PAT 만료).
+
 ## 2026-09-25 — 서버 함수 번들 과대 해소 + 추적 범위 게이트
 
 - **배경**: engccer Hobby 팀 Functions Storage가 16.76GB/10GB(9/23 한도 메일). 대시보드 프로젝트별 실측으로 webfortd가 16.14GB(96%)였고, 배포 1건이 약 1.94GB — `[...kb]`·`legacy/resources/law-guide`·`research-guide` 세 함수가 각 약 220MB였다. 원인은 경로를 범위 없이 조합하는 두 모듈(`kb.ts`의 `path.join(process.cwd(), filePath)`, `mdx.ts`의 `path.join(CONTENT_DIR, section, subsection)`)이라 빌드의 파일 추적이 저장소 전체(`public/source-images`·`data/` 등)를 함수에 실었다. 빌드 로그의 「Encountered unexpected file in NFT list」 경고가 이미 가리키고 있었다.
