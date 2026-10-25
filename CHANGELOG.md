@@ -2,6 +2,12 @@
 
 > 날짜별 변경 이력(마일스톤 경계 갱신). 2026-07-10 이전 이력은 git log와 CLAUDE.md §Phase 진행 요약이 정본(지연 생성 원칙에 따라 이 파일은 iOS 트랙 진입 시점부터 시작).
 
+## 2026-10-26 — next 16.4.3 보안 업데이트
+
+- **변경**: next 16.2.6 → 16.4.3. 16.4.1 미만 Critical 권고(GHSA-673q-mjm6-r5xr 등)와 Server Actions DoS(GHSA-p3m5-59mp-jv5r) 해소, 편집기 Server Action이 영향권이었다. eslint-config-next는 16.0.10 유지(16.4.3이 끌어오는 react-hooks 7.1.1이 기존 코드에서 오류 13건을 새로 잡는다).
+- **E11 종결**: 16.4의 빌드 타입 검사가 tests/까지 보게 되어 테스트 파일 타입 오류 11건을 타입 표기만 고쳤다.
+- **Cache Components**: 시험 후 미도입(BACKLOG E12).
+
 ## 2026-09-26 — 백로그 일괄 처리: a11y 게이트 가드·RAG 공개 전 준비·API 보강·iOS/테스트 부채 (PR #121~#125)
 
 - **a11y 게이트(PR #121, PORTS 역이식 gildongmu@709ea1b4)**: 게이트 전용 포트 3100 + 서버 재사용 금지, `expectNoAxeViolations`가 응답 200·최종 경로를 단언(404·리다이렉트 화면을 감사하고 통과하던 구멍). 40 passed.
