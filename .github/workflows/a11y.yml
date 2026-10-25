@@ -9,7 +9,7 @@ on:
 
 jobs:
   axe:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.60이 ubuntu-latest(26.04)의 chromium 의존성을 설치하지 못한다
     timeout-minutes: 15
 
     env:
