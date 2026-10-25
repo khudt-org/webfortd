@@ -65,7 +65,7 @@ describe('loadDocumentCore', () => {
 describe('submitBodyCore', () => {
   const args = { slug: '2020-ca-1-2', baseSha: 'sha-1', body: '고친 본문\n' }
   it('정상 경로: frontmatter 보존 병합 + 가명 커밋 메시지 + accepted + newBaseSha', async () => {
-    let put: { text: string; message: string } | null = null
+    let put = null as { text: string; message: string } | null
     const r = await submitBodyCore(
       deps({ putFile: async (a: { text: string; message: string }) => { put = a; return { ok: true, value: { commitSha: 'c1', contentSha: 'sha-2' } } } }),
       args,

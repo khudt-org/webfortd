@@ -7,7 +7,7 @@ import { test, describe, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { prefersReducedMotion, motionScrollBehavior } from '../../src/lib/motion.ts'
 
-type GlobalWithDom = typeof globalThis & {
+type GlobalWithDom = Omit<typeof globalThis, 'window' | 'document'> & {
   window?: unknown
   document?: unknown
 }

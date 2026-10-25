@@ -79,7 +79,7 @@ describe('0013 admin role + RLS', { skip: skipReason }, () => {
       return
     }
 
-    const policies = (data ?? []) as Array<{
+    const policies = (data ?? []) as unknown as Array<{
       tablename: string
       policyname: string
     }>

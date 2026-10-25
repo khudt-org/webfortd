@@ -46,7 +46,7 @@ describe('rag/route-handler', () => {
       role: 'user',
       parts: [
         // image part — text 속성 없음
-        { type: 'image', image: 'data:image/png;base64,abc' } as Parameters<typeof extractUserText>[0]['parts'][number],
+        { type: 'image', image: 'data:image/png;base64,abc' } as unknown as Parameters<typeof extractUserText>[0]['parts'][number],
         { type: 'text', text: '이미지 설명해주세요.' },
       ],
     }
