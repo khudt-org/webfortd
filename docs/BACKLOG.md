@@ -55,7 +55,7 @@
 - E6 웹 감사 보류분(PR #78): ChatUI `aria-relevant`(위원장 실 VoiceOver 판정) / KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션 — 운영 DB 변경이라 C9 재개와 묶어 판단) / 분산 rate limit(외부 저장소 필요, 비용)
 - E8 decompose 범위 경고가 자기+부모 kind만 봄(조상 전체로 넓히면 2층 승격 누락 신호 증가 — 잡음 대비 이득 판정 필요)
 - E10 `tests/migrations/0005_rag_infrastructure.test.ts`가 청크 1000+·문서 535+ 절대 수치를 가정한다. 지금은 통과하지만 C9 재개(고아 482건 삭제) 뒤 깨진다 — 재개 PR에서 불변식 단언으로 교체(PR #122 리뷰 발견)
-- E11 `npx tsc --noEmit`이 테스트 파일 4곳(`tests/editor-edit-core`·`tests/lib/motion`·`tests/migrations/0013`·`tests/rag/route-handler`)에서 오류 11건. 테스트 러너(tsx)는 타입을 보지 않아 통과 중이고 CI 게이트에도 tsc가 없다
+- E12 Cache Components(`cacheComponents: true`) 미도입. 루트 레이아웃이 사이드바 SSR 쿠키(D1~D9)를 `<html>` 속성에 쓰려고 Suspense 밖에서 읽어 모든 경로의 프리렌더가 막힌다(`/_not-found`부터 빌드 실패). 루트에 `instant = false`를 걸어도 `/`의 `new Date()` 동기 IO 오류가 남는다. 도입하려면 사이드바 상태 전달 방식 재설계와 동기 IO 이동이 먼저이고, 지금은 전 경로가 이미 동적(ƒ)이라 그 재설계 전에는 이득이 없다. 도입 시 `runtime = 'nodejs'` 7곳·`force-dynamic` 2곳도 지운다(Cache Components가 지원하지 않는다)
 
 ## F. 사업·운영 결정 대기 (판정은 PROGRESS §미결 결정)
 
@@ -91,4 +91,5 @@
 | E1 서버 신호·threads rate limit, E6 첨부 magic bytes | 2026-09-26 PR #124 |
 | E1 iOS 표시, E2·E3·E4 | 2026-09-26 PR #123 |
 | E5 통합 테스트 드리프트, E8 분해 규칙 단위 테스트 | 2026-09-26 PR #122 |
+| E11 테스트 파일 tsc 오류 11건 | 2026-10-26 next 16.4.3 업그레이드에서 수정, 이후 `next build` 타입 검사가 tests/까지 본다. CHANGELOG 2026-10-26 |
 | E9 색상 대비 AA 미달 | 2026-09-05 완료(라이트 3종·다크 1종 토큰 조정 + 전수 매트릭스 게이트 신설, axe 기준선에서 color-contrast 제거로 0건 고정), CHANGELOG 2026-09-05 |
