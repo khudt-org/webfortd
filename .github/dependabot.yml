@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      # 메이저 갱신은 월간 수작업 몫
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # 16.4가 끌어오는 react-hooks 7.1이 기존 코드에서 lint 오류 13건(CHANGELOG 2026-10-26)
+      - dependency-name: "eslint-config-next"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
