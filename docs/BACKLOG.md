@@ -63,6 +63,15 @@
 - F2 KHUDT Pro 재활성(월 $20) 실행 시점 — 절차 `docs/VERCEL_RECOVERY_PLAN.md`
 - F3 UPSTAGE_API_KEY production 미등록(HWP/HWPX 첨부만 영향, `docs/M7_ENV_SETUP.md`)
 
+## G. 의존성·보안 유지 (절차는 `dependency-upkeep` 스킬)
+
+- G1 [위원장] 조직 보안 설정 켜기: 저장소가 khudt-org 소유라 일반 회원 계정(Engccer)으로는 켤 수 없다. 조직 관리자 계정(khudt01)으로 저장소 Settings → Advanced Security에서 Dependabot alerts·Dependabot security updates·Secret scanning·Push protection을 켠다. 완료 기준: 네 항목 모두 Enabled
+- G2 [위원장] PR 병합(병합하면 배포가 돈다), 순서대로: ① 의존성 갱신 [#130](https://github.com/khudt-org/webfortd/pull/130)(잠금 파일만, 보안 경고 27→10) ② Dependabot 설정 [#131](https://github.com/khudt-org/webfortd/pull/131)(npm·GitHub Actions 월 1회 묶음 PR, 7일 대기, npm 메이저와 eslint-config-next 갱신 제외, `.npmrc` min-release-age=7). ③ G1을 켠 뒤 생기는 Dependabot 보안 PR은 ① 병합 뒤 스스로 닫히는지 보고 남은 것만 병합. 완료 기준: 열린 의존성 PR 0개
+- G3 [로컬] vitest 5 메이저 업데이트: 남은 critical 2건은 vitest 5로 올려야 풀린다. worktree에서 올리고, 빌드를 먼저 돌린 뒤(`kb-index.generated.json`이 빌드 산출물) 단위·컴포넌트 테스트를 돌린다. 완료 기준: 빌드와 테스트 모두 통과
+- G4 [로컬] 통합 테스트 Supabase 인증 실패: 실제 DB에 붙는 통합 테스트가 의존성 갱신 전후 모두 인증 오류로 실패한다(`Invalid Compact JWS`, `PGRST303 JWT issued at future`, 0001 RLS 단정). `.env.local`의 Supabase 키 형식(새 publishable/secret 키로 바뀌었는지)과 시계 차이를 확인해 고친다. 완료 기준: 통합 테스트 통과
+- G5 [로컬] eslint-config-next 16.0.10 고정 풀기: 16.4가 가져오는 react-hooks 7.1 규칙 오류 13건을 고친 뒤 버전을 올리고 `.github/dependabot.yml`의 eslint-config-next 제외 줄을 지운다(CHANGELOG 2026-10-26). 완료 기준: 최신판에서 `npm run lint` 오류 0
+- G6 [로컬] 월간 의존성·보안 점검: 다음 회차 2026-11. 완료 기준: 그달 보안 경고·Dependabot PR 정리
+
 ## 폐기 (재조사 방지)
 
 | 항목 | 판정 | 근거 |
