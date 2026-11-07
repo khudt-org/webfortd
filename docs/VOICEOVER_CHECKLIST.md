@@ -2,7 +2,7 @@
 
 > **목적**: 자동 검증(axe-core)이 못 잡는 *실제 사용 경험*을 위원장이 iPhone Safari + VoiceOver로 10분 동안 점검.
 > **시점**: Phase 4 M3 PR B 머지 + production deploy 검증 직후.
-> **결과 보관**: 자유 형식 메모 → `~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Shared drives/장교조 공유 드라이브/1. 위원장/5. 디지털 전환 프로젝트/3. webfortd/`
+> **결과 보관**: 자유 형식 메모 → `~/Library/CloudStorage/GoogleDrive-khudt@khudt.net/Shared drives/장교조 공유 드라이브/1. 위원장/5. 디지털 전환 프로젝트/5. webfortd/`
 
 ---
 

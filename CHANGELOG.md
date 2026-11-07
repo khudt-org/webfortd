@@ -1,6 +1,6 @@
 # CHANGELOG
 
-> 날짜별 변경 이력(마일스톤 경계 갱신). 2026-07-10 이전 이력은 git log와 CLAUDE.md §Phase 진행 요약이 정본(지연 생성 원칙에 따라 이 파일은 iOS 트랙 진입 시점부터 시작).
+> 날짜별 변경 이력(마일스톤 경계 갱신). 2026-07-10 이전 이력은 git log와 이 파일 맨 아래 「이전 이력」(Phase 진행 요약)이 정본(지연 생성 원칙에 따라 이 파일은 iOS 트랙 진입 시점부터 시작).
 
 ## 2026-10-26 — next 16.4.3 보안 업데이트
 
@@ -225,3 +225,62 @@ improve-animations 스킬 사이클(감사 → 플랜화 → 실행 → review-a
 
 ### 문서·메모리
 - spec/plan 6개 문서 커밋, CLAUDE.md(iOS 트랙 원칙·구조·명령), PROGRESS.md·CHANGELOG.md 신설, 세션 메모리 갱신.
+
+## 2026-05-14 ~ 2026-07-10 — 이전 이력 (Phase 진행 요약)
+
+CHANGELOG 신설(2026-07-10) 이전의 Phase 이력이다. 에이전트 지침(CLAUDE.md)에서 옮겼다.
+
+### Phase 진행 요약
+
+> 수치(unit·components·페이지 수 등)는 각 PR 시점 값이다. 현재 baseline은 PROGRESS.md.
+
+| Phase | 머지 시점 | 핵심 산출물 | 주요 PR |
+|-------|-----------|-------------|---------|
+| 1 | 2026-05-17 | 콘텐츠 정본 인프라 + 빌드 파이프라인 + 출처 마크다운 5개 분해 → **535 atomic 페이지 / 564 정적 라우트** baseline. `ordinance-comparison` 2026-03-11 9개 시도 갱신 | #1 `9b8efe4`, #2 `ae9d8de`, #3 `75d86e5` |
+| 1.5 / 1.5b / 1.5c | 2026-05-17~19 | 86건 이미지 매핑 자동화 — 4종 cross-validation(Claude·Gemini·Codex·Gemma) + `_alt_original` 가드 + PyMuPDF raster pool 6배 확장(22→991장) + ±10 window. 누적 자동 적용 28건, 검수 큐 79건 closed-loop. 상세: `docs/image-mapping-poc-report.md` | #4~#11 |
+| 2 인프라 + M1~M5 + Cleanup + Finding | 2026-05-19~22 | Route Groups 분리 / Supabase KHUDT 셋업(direnv) / 4 tables RLS(0001) / 535 docs+1040 backlinks idempotent sync / @supabase/ssr 인증 / `editor_roles` + status 트리거(0002) + publish 검수 자동화(`scripts/publish-content.ts` baseline 535/8/527) / search_path 가드(0003) / formatSupabaseError PII / parseDocumentRow / **Finding 1: editor write 정책 DROP(0004)** / sb-* cookie short-circuit perf | #12·#14·#15·#16·#17·#18·#19 `cb8597f` |
+| CI | 2026-05-19 | `content-validate.yml` paths 필터 제거 — branch protection required job 정책 모순 해소. 이후 PR admin 우회 불필요 | #13 `48148ef` |
+| 인프라 KHUDT 이관 | 2026-05-23 | GitHub `khudt-org/webfortd` + Vercel `KHUDT's projects` Team **Pro** + Supabase Auth URL 갱신 | #20 `f4f5d30` |
+| 3 RAG | 2026-05-23 | 설계 spec(`docs/superpowers/specs/2026-05-23-phase-3-rag-design.md` 6 milestones) → M1 임베딩 파이프라인(`chunker`·`gemini-embed`·`embed-content` CLI + 0005 hnsw) → M2 retrieval(0006 RPCs + 0007 schema 한정자 + 0008 jsonb extractor + **0009 status 화이트리스트** — archived/deprecated 제외) → M3 Route Handler(`app/api/chat/route.ts` + AI Gateway OIDC + `gemini-3.5-flash` + 시스템 프롬프트 영구 원칙). **실측 baseline**: 535 docs / 2766 chunks / 6 axes / gemini-embedding-2-preview 1536-dim. char_start/char_end DEFERRED | #21·#22·#23·#24·#25·#26·#27·#28 |
+| 4 spec → M1 → M2 → fix | 2026-05-27~28 | spec(D1~D8 + Agent Teams 운영) → M1 라우팅·IA 기반((gov)→(gov)/legacy + (wiki) atomic 통합 + redirects 16건) → M2 콘텐츠 기능(/library 4 PDF + /media raster baseline + 역할별 entry + `KbSourceFooter`) → fix(`outputFileTracingExcludes: { "*": ["public/library/**"] }` for 250MB function 한계). **PR #47·#48 시점 baseline**: 577 정적 페이지 / 230 unit / 35 integration | #43·#45 `ef0b3ed`·#47 `31ffbca`·#48 `597767a` |
+| Vercel 결제 락 회귀 | 2026-05-25~27 | KHUDT Pro 결제 실패(케이스 `01ZB5aczzV9bxDOo` SLA 2~3주) → engccer Hobby Vercel scope만 임시 회귀. GitHub + Supabase는 KHUDT 그대로(KHUDT 복귀 시 5~15분). 카드 재등록(공개 저장소라 결제 세부 생략) + AI Gateway $20 top-up. **`gemini-3.5-flash`는 paid-only 모델** — 카드 등록만으론 부족, top-up 필수. 복귀 절차: `docs/VERCEL_RECOVERY_PLAN.md` |
+| UI 사이드바 리팩터 | 2026-05-28~29 | **PR #60** (`a586582`, 사이드바·햄버거 D1~D9): SidebarContext + useMediaQuery + sidebar-cookie + useKeyboardShortcut + SidebarNav + AppSidebar + Header rewrite + AppShell + SkipLink 확장 + Playwright a11y 14 test. 16 commits. **PR #61** (`a54d017e`, 위키 진입점 + Footer 재구성): WikiEntriesNav + AppSidebar pathname 자동 분기 + EntryToggle "레거시 사이트" 라벨 + (wiki)/page.tsx ChatLibraryMediaEntries 제거 + Footer 3섹션 + about/privacy/terms/sitemap placeholder + "AI 채팅" → "채팅" + a11y 14→18 test. **PR #62 hot fix** (`cdf91ea6`): next.config /about redirect 제거(위키 about 페이지 우선). **baseline**: 584 정적 페이지 / 120 component / 18 a11y |
+| Phase B M1 publish 정합 | 2026-05-29 | **PR #66** (squash `82d9b44`, 4 commits): sync가 frontmatter status 반영(B2) + `kb:bootstrap`(라인 기반 promoteFrontmatter, dry-run 기본) + 527 .md published 승격(reviewed_by "1차 검토(김헌용)") + publish-content deprecate. **DB published 535 정합 검증**. 한국어 라벨 대시보드(PR #65 `a86c940`). 후속 hotfix: AdminBar RSC onClick 제거(PR #64). **Phase B 잔여**: M2(위키 라우트 게이트 + Preview Mode + Preview Toggle), M3(RAG admin 분기 + 카탈로그 게이트). spec: `docs/superpowers/specs/2026-05-29-phase-b-preview-mode-publish-design.md` |
+| Phase A admin 가시성 | 2026-05-29 | **PR #63** (squash `1bcd9d1`, 7 commits): editor_roles 'admin' role 확장 + 위원장 이메일 seed(0013 마이그레이션) + admin SELECT RLS 정책 3건 + `getCurrentUserAdminStatus` server-side 헬퍼(fail-safe) + AdminBar RSC(+ AdminBarView 분리) + (wiki)/layout.tsx CSS variable `--admin-bar-h` 주입 + KbPageLayout `fixed inset-x-0` 분리 + StatusBadge 5종 시각화 + /admin/dashboard(status 카운트 + axis 분포 + 검수 큐 + broken_wikilinks + DB↔kb-index 정합 검증) + codex-rescue P1 2건 fix. **baseline**: 245/244 unit / 138/138 component / build ƒ /admin/dashboard 등록. **영구 원칙 정합**: DB write 0 (read-only). **Phase B 의존**: 위키 라우트 status 게이트 + bootstrap publish + Preview Toggle 활성화는 다음 PR |
+| 기타 영구 결정 (2026-05-23) | — | 테스트 분리(`test`=unit / `test:integration` / `test:components` vitest / `test:a11y` playwright). UI 용어 "챗봇"→"채팅" 통일. 모바일 접근성 + 멀티미디어 작성 원칙(alt·캡션 본문 게시) §접근성 원칙에 반영. Phase 3 incremental 정책: 전체 재처리(시범 단계 비용 푼돈) |
+| Phase 7 라이브 음성 채팅 | 2026-06-03 | **PR #74** (squash `9bc573f`, 27 commits). 장기 과제 "실시간 음성 채팅" → **정식 Phase 7 승격**. dodo-planet Gemini Live 패턴 직접 이식 + 슬림화(카메라·travel·builder·다로케일 제거, 694→516줄), 함수 호출을 `search_policy` RAG 도구 1종으로 교체(기존 `retrieveChunks` 재사용). **로그인 필수·음성 전용.** 신규: `gemini-live.ts`(server-only 토큰 팩토리) · `voice/{voice-prompt,search-policy,types,pcm-base64,barge-in,audio-session,warmup}.ts` · `/api/voice/{session,execute}` · `useAudioIO`·`useGeminiLive` · `worklets/pcm-{capture,playback}` · `VoiceChatOverlay`. 의존성 `@google/genai ^1.52`(Gateway 미경유 직접 키, 임베딩 키 재사용 — production 이미 등록). 실행=subagent-driven(task별 spec+코드품질 2단계 리뷰) + cross-cutting 통합 리뷰(10계약 READY) + coderabbit major 3건. 다층 리뷰가 잡은 실사용 결함: 프롬프트 `[참고 자료]` 인라인 조기 split로 영구원칙 4·5 누락 / 500 정보누출 / Space preventDefault 종료버튼 차단(WCAG 2.1.1) / 출처 링크 same-tab 세션 끊김 / 영어 에러 한국어화 / iOS 제스처 동적 import / connect 타임아웃 후 마이크 ON·session 누수. 검증: unit 315 / components 150 / lint 0 / axe pass. **production 반영 확인**: 버튼 노출 + voice 라우트 401 게이트. **잔여**: 위원장 실 마이크 smoke(`docs/PHASE7_ENV_SETUP.md` §3). spec `docs/superpowers/specs/2026-06-03-live-voice-chat-design.md` / plan `docs/superpowers/plans/2026-06-03-live-voice-chat.md` |
+| 전면 감사 패치 | 2026-06-11 | **PR #78** (squash `e96a0d8`, 52파일 +807/−284). 보안·버그·a11y·성능 4관점 병렬 감사 → 일괄 패치. **P1 버그**: 채팅 threadId race — `streamText.onFinish`(클로저 set) ↔ `messageMetadata`(finish part read)는 tee 스트림 간 순서 미보장이라 로그인 사용자 대화가 턴마다 새 thread로 분절 → `createUIMessageStream.execute`(생성 완료 await → DB 저장 → `message-metadata` chunk 수동 write)로 구조 해결. **보안**: transcribe·chat IP rate limit(`src/lib/rate-limit.ts`, 10·20회/분 in-memory) / voice 토큰 `uses:0`(무제한)→`1` / 보안 헤더(frame-ancestors·nosniff·Referrer-Policy) / 첨부 프롬프트 injection 가드 / `/auth/error` 신설(기존 404) / callback open redirect 검증 / sitemap published 필터. **a11y 43건**(P1 14 전부): main 중첩·SkipLink 중복 제거 / MDX 헤딩 데모션(h1 중복 해소) / MDX·TOC 다크모드 토큰화 / `prefers-reduced-motion` / 첨부 거부 사유 미표시 fix / 스트리밍 중단 버튼 / `disabled`→`aria-disabled` 패턴 / 포커스 복귀(음성 오버레이·마이크 모달·사이드바·로그아웃) / WikiHero 검색 CTA fix / AuthModal 가시 라벨+한국어 에러 / Footer 가짜 연락처 제거 / 1초 미만 녹음 거부 버그 fix. **성능**: SiteSearch kb-index 1.2MB 지연 로드(948K 별도 청크 실측) / VoiceChatOverlay dynamic / AdminBar 이중 admin 조회 제거(layout prop). **검증**: unit 315 / components 163 / lint 0 / build 590페이지 / axe 33. **production 실측**: /auth/error 200 + 보안 헤더 라이브 + rate limit 11연타 429. **의도적 보류**: ChatUI `aria-relevant` (위원장 실 VoiceOver 판정) / KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션) / 분산 rate limit·magic bytes |
+| iOS v1 (M0~M4) | 2026-07-10 | **iOS 네이티브 앱 5탭 완성**(위키·채팅·자료실·미디어·설정, 단일 세션) — M0 오프라인 위키(#87) / M1 검색·백링크(#88) / M2 RAG 채팅·첨부(#89) / M3 OTP 인증·이력 + 서버 Bearer·`GET /api/chat/threads/[id]` 신설(#90) / M4 자료실·미디어·설정 + `docs/IOS_DISTRIBUTION.md`(#91). Kit 테스트 49. 리뷰가 잡은 실결함: source_refs jsonb 이중 인코딩(이력 복원 전면 실패였을 것)·오류 문구 이력 재전송·HTML 태그 낭독 누출 3계층·다운로드 세대 레이스. **잔여**: 위원장 실기기 일괄 게이트, Developer Program·앱 아이콘·/privacy 본문, M5 음성(보류) — 상세 PROGRESS.md |
+
+작년 2026-05-14~16 framing(마크다운 정본 + 어댑터 v2)은 에이전트 지침(CLAUDE.md, 로컬) §개발 방향 §축 2에 흡수.
+
+### 단계적 구축 (Phase)
+
+
+**Phase 1.5 / 1.5b / 1.5c 완료** (2026-05-19, PR #4~#11):
+
+86건 unmapped 이미지 매핑을 4종 cross-validation(Claude·Gemini·Codex·Gemma) 합의 패턴으로 자동화. 누적 자동 적용 28건(M4 18 + alt 정제 3 + PR B 본 자동화 7)·검수 큐 79건은 closed-loop으로 정리. Phase 1.5c(PR #10 plan + #11 구현)에서 PR B 후속 stale 정리 + ±10 window cross-validation + test fragility 보강. 상세: `docs/image-mapping-poc-report.md`.
+
+| Phase | 상태 | 기간 | 작업 |
+|-------|------|------|------|
+| 1 | 완료 (2026-05-17) | 4주 | 콘텐츠 정본 인프라(스키마·검증) + 빌드 파이프라인(Supabase 없이, JSON 인덱스) + 다크모드·검색 활성화 + 출처 마크다운 5개 분해(535개 atomic 페이지, 564개 정적 라우트) + git PR 검수 워크플로. (plan 파일은 로컬 전용이라 repo 미수록) |
+| 1.5 / 1.5b / 1.5c | 완료 (2026-05-19) | 약 2주 | 이미지 매핑 자동화 (PR #4~#11). 1.5(PR #4) `_alt_original` 가드, 1.5b(PR #6~#9) raster pool 보강 + 본 자동화 7건, 1.5c(PR #10~#11) stale 정리 + ±10 window cross-validation + test fragility 보강. 누적 자동 적용 28건, 검수 큐 79건 closed-loop. 상세: `docs/image-mapping-poc-report.md` |
+| 2 (개정, 완료) | 인프라+M1~M5+Cleanup+Finding fix 완료 (2026-05-22) | 3~4주 | ✅ **Route Groups 분리** (PR #12). ✅ **Supabase 프로젝트 셋업** (khudt 계정). ✅ **M1 첫 마이그레이션** (PR #14, 4 tables + RLS). ✅ **M2 sync** (PR #15, 535 docs draft + 1040 backlinks). ✅ **M3 인증 인프라** (PR #16, `@supabase/ssr` + AuthContext + `(wiki)` 게이트). ✅ **M4+M5 머지** (PR #17): `editor_roles` 권한 인프라 + write RLS + status 전이 트리거 + `npm run kb:publish` 검수 자동화. ✅ **Cleanup 머지** (PR #18): 0003 search_path 가드 + formatSupabaseError(PII) + parseDocumentRow + batch UPDATE read-back. ✅ **Finding 1+2 fix** (PR #19 squash `cb8597f`): codex-rescue 재실행 결과 — editor write RLS 정책 DROP(옵션 B, "마크다운이 정본" 원칙 강화) + proxy sb-* cookie short-circuit(익명 트래픽 perf) + 빌드 회귀 fix(allowImportingTsExtensions + cast). 535 docs 모두 draft + 8건 reviewed_by 보유(Phase 1.5b 흔적) 위원장 명시 승인 시 publish. 상세: `docs/DIRECTION_2026.md` §1·§3 |
+| 3 (개정) | 완료 (2026-05-23, PR #21~#28 — §Phase 진행 요약) | 3~4주 | 임베딩 파이프라인 + **RAG 채팅** (정책 문서 검색 + 출처 인용) + AI SDK + Vercel AI Elements 채팅 UI. dodo-planet의 function-calling 패턴이 아닌 RAG 신규 작성. 상세: `docs/DIRECTION_2026.md` §4 |
+| 4 (개정) | 대기(미착수 — BACKLOG §폐기. §Phase 진행 요약의 "Phase 4"는 위키 리뉴얼·라우팅/IA로 번호가 다른 뜻) | 2~3주 | **소셜 피드** (`(wiki)` 그룹 전용, 인증 의무, 장교조 조합원 + α 대상). dodo-planet `feed_posts`/`feed_comments`/`feed_likes` 스키마 재사용. 상세: `docs/DIRECTION_2026.md` §5 |
+| 5 | 대기 | 2주 | TTS·이미지 alt 자동생성 (Phase 1.5의 매핑 자동화 패턴 재활용 가능) |
+| 6 | — | — | 다국어, 정책 통계 시각화 |
+
+### 당시 영구 결정 가운데 이후 대체·완료·글로벌 이관된 것
+
+| 일자 | 결정 |
+|------|------|
+| 2026-05-28 | **codex-rescue 무한 루프 회피 규칙 글로벌화** — Phase 4 M1 dispatch 시 환경 진단 명령 수천 회 반복 → "Turn aborted" 사고. 글로벌 ~/.claude/CLAUDE.md에 §"codex-rescue 무한 루프 회피" 박음(첫 호출 전 `codex doctor` + 5분 timeout + fail signal retry 금지 + 직접 검수 fallback) |
+| 2026-05-29 | **메뉴 라벨 이모지 금지 (글로벌)** — 글로벌 ~/.claude/CLAUDE.md에 §"UI 메뉴 라벨 이모지 금지" 박음. UI 컨트롤(메뉴/버튼/사이드바 헤더/카드 제목/탭) 이모지 금지. lucide-react·Heroicons SVG 아이콘은 허용(`aria-hidden` 처리). 본문·블로그·외부 인용 안 이모지는 허용. 근거: 이모지가 "AI 생성 화면" 인상을 키워 사용자 신뢰 저하 |
+| 2026-05-29 | **Bootstrap publish 실행 완료** — PR #66. `kb:bootstrap`(scripts/bootstrap-publish.ts, 라인 기반 정밀 치환 — status/reviewed_by 2줄만, 본문 보존)으로 527개 .md를 `status: published` + `reviewed_by: ["1차 검토(김헌용)"]` 승격 → build → kb:sync → **DB published 535 정합**. 위원장 "품질 OK" 승인. reviewed_by placeholder는 향후 정밀 검수 시 실제 reviewer로 교체하는 점진 워크플로. dry-run 기본 + explicit `--apply` 강제 |
+
+### 장기 과제에서 정식 Phase로 승격·완료된 것
+
+| 과제 | 내용 | 도입 트리거 |
+|------|------|-------------|
+| **실시간 음성 채팅 (라이브 채팅)** | 텍스트 채팅 외 마이크 입력 + TTS 출력으로 실시간 음성 대화. dodo-planet의 "라이브 채팅" 패턴 참고 — Gemini Live API + AudioContext 스케줄링. 시각장애인 핵심 접근성 향상. | ✅ **정식 Phase 7로 승격·완료 (2026-06-03, PR #74 squash `9bc573f`, production 배포)** — 위원장 실 마이크 smoke만 남음 |

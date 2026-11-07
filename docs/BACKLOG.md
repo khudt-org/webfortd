@@ -2,6 +2,17 @@
 
 > 아직 하지 않은 것만 담는다(열린 항목·판정 대기·이월·폐기 근거). 종결되면 CHANGELOG로 보내고 여기서는 지운다(다른 문서가 참조하는 식별자는 §종결 표에 행선지만 남긴다). 현재 상태·미결 결정은 PROGRESS.md, 항구 규칙은 CLAUDE.md. 2026-08-17 PROGRESS.md에서 분리.
 
+## 착수 순서
+
+| 묶음 | 항목 | 필요 환경 | 순서 |
+|------|------|-----------|------|
+| 공개 준비 | **C6 부록2 기기 사진 대체텍스트** | 로컬 필요 | 선행 |
+| TestFlight 준비 | **D2 App Store 스크린샷** | 로컬 필요 | 병행 |
+| 웹 정책 페이지 | **D3 /privacy 본문**, **D4 /terms 본문**, **D5 Support URL** | 위원장 | 병행 |
+| 채팅 이력 | **E1 채팅 이력 잔여** | | 병행 |
+
+판정 대기(C1·C7·C9·C15 대안 선택·E8·F1·F2)·미결 결정 대기(D1 디자인 방향·D6 판매자명)·C9 종속(C13·E10, 공개 판정·실행과 함께)·위원장 실측(§A)·운영 잔무(§B·F3)·보류(D7·E12)·점진(C2·C4·C14·C16)·E6(구조 대수술·운영 DB·비용이 섞여 착수 전 판정 필요)은 표에 넣지 않는다.
+
 ## A. 위원장 실측 대기 (리뷰로 대체 불가)
 
 | # | 항목 | 출처 |
@@ -21,54 +32,63 @@
 
 ## B. 편집기 운영 잔여 (spec `docs/superpowers/specs/2026-08-04-web-content-editor-design.md` §11)
 
-- B1 연구보조원 이메일 `editor_roles` seed(위원장이 이메일 주면 service_role로 실행)
-- B2 감수자 안내 `docs/EDITOR_GUIDE.md` 전달(위원장)
-- B3 PAT `webfortd-content-editor` 만료일 2027-08-05 캘린더 등록(위원장)
+- [ ] **B1 연구보조원 editor_roles seed**: 연구보조원 이메일 `editor_roles` seed(위원장이 이메일 주면 service_role로 실행)
+- [ ] **B2 감수자 안내 전달**: 감수자 안내 `docs/EDITOR_GUIDE.md` 전달(위원장)
+- [ ] **B3 PAT 만료 캘린더 등록**: PAT `webfortd-content-editor` 만료일 2027-08-05 캘린더 등록(위원장)
 
 ## C. 콘텐츠
 
-- C1 FAQ 9건(`content/faq/`, axis faq) 검수 → published(PR #86, 2026-07-04 이후 draft 대기)
-- C2 콘텐츠 큐레이션(자료실·카드뉴스·위키 — 허유진 교수 협업)
+- [ ] **C1 FAQ 9건 검수**: FAQ 9건(`content/faq/`, axis faq) 검수 → published(PR #86, 2026-07-04 이후 draft 대기)
+- [ ] **C2 콘텐츠 큐레이션**: 콘텐츠 큐레이션(자료실·카드뉴스·위키 — 허유진 교수 협업)
 - C3 ~~이미지 매핑 검수 큐 79건~~ → 폐기(2026-08-29): v3 LLM alt 기반 매핑은 2층 v4가 그림을 전사·대체텍스트로 흡수해 실체가 사라짐. 자산은 `content/_archive-v3/`에 보존, 새 매핑은 alt 해시 키로 `image:template`부터 시작(현재 마커 4건)
-- C4 `reviewed_by: ["1차 검토(김헌용)"]` placeholder를 정밀 검수 시 실제 reviewer로 교체(점진)
-- C6 지원인력 안내자료 부록2 기기 사진 12장 대체텍스트: v4는 `(사진: 기기명)` 자리표시(표 안 이미지라 HWPX 추출 불가). v3 LLM alt 11건 이식 또는 `generate_alt_text.py` 생성 — 3층 단계에서 처리
-- C9 **일괄 공개·임베딩 재개**(2차 검수 반영 재생성 9/11 완료, 3차 검수 9/14~16 → 수행사 전달 9/21 뒤 webfortd 공개는 별건 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → `nightly-embed` workflow_dispatch(`allow_mass_delete`)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. 첫 실행이 수동인 이유: 구 v3 주소 행이 DB 과반(2026-09-26 dry-run 482/544)이라 `kb:sync`의 고아 정리가 플래그 없이는 멈추고, 야간 스케줄 실행은 플래그를 넘기지 못한다(PR #125). 옛 대화 기록의 출처 링크는 이때 끊긴 주소가 된다. **재개 전 남은 판정**: `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 367건 = 4종 358 + FAQ 9)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
-- C14 법령 최신화(2차 검수 47번: 장애인차별금지법 2025-03-18 개정 제4조 제1항 제7호 신설 등)는 방침대로 내년 갱신. 정본 수정 목록 유형 「법령 갱신」에 기록
-- C15 3층 축(폴더) 이동 54건(2026-09-11 장애유형 판정 변화): URL이 `/{axis}/{slug}`라 공개 뒤에 같은 일이 생기면 구 주소 리다이렉트가 필요하다. 공개 전(C9)에 축 판정을 확정하거나 slug 단독 라우트를 검토
-- C16 여러 쪽에 걸친 표 안의 쪽 주석(2026-09-23): 쪽 주석은 쪽이 바뀐 첫 본문 줄 앞에만 들어가고 GFM 표 안에는 둘 수 없어, 표 한 덩어리가 여러 쪽이면 그 안의 쪽은 마커가 없다(최종보고서 161쪽 — 직무분류표 53~79·면담 결과표 228~288·부록 결과표 352~402, 인사관리 5쪽, 중부대 6쪽, 지원인력 11쪽. `docs/regression-2026-09-review50.md` 「남은 빈 쪽」). 3층 `source_page_end`는 넘치지 않고 짧을 뿐이라 검수 지적은 없었다. 필요해지면 표를 자르지 않고 frontmatter에 표별 쪽 범위 목록을 두는 방안을 검토
-- C13 홈 메타 설명(`src/app/(wiki)/page.tsx` metadata)이 「535개 정책·법령·사례·보조공학 페이지」로 v3 시점 수치를 말한다 — 현재 공개 건수는 50(단체협약 49 + resources 1)이라 검색엔진·공유 카드에 노출되는 값이 사실과 다르다. C9 일괄 공개 판정 뒤 실제 공개 건수로 갱신(공개 여부에 따라 값이 달라지므로 그때 함께)
-- C7 2층 v4 2차 검증 대상(콘텐츠팀): 신청 서식 전사 블록(OCR 유래), 인사관리 도표 2종 대체텍스트, `정본 수정 목록.csv` 「확인 필요」 행
+- [ ] **C4 reviewed_by 실제 reviewer 교체**: `reviewed_by: ["1차 검토(김헌용)"]` placeholder를 정밀 검수 시 실제 reviewer로 교체(점진)
+- [ ] **C6 부록2 기기 사진 대체텍스트**: 지원인력 안내자료 부록2 기기 사진 12장 대체텍스트: v4는 `(사진: 기기명)` 자리표시(표 안 이미지라 HWPX 추출 불가). v3 LLM alt 11건 이식 또는 `~/Mac-Projects/docparse/scripts/generate_alt_text.py` 생성. 3층 재생성 세 번(8/29·9/11·9/23)에도 남아 있어 C9 공개 전에 2층 데이터(`scripts/source-v4/alts/`)에 넣어 재생성
+- [ ] **C9 일괄 공개·임베딩 재개**(3차 검수 반영 재생성 9/23 완료(358건) → 수행사 전달(2026-09~10) 완료, webfortd 공개는 별건 위원장 판정 — PROGRESS §미결 결정): `npm run kb:bootstrap` → `content/.embed-paused` 삭제·커밋 → `nightly-embed` workflow_dispatch(`allow_mass_delete`)가 kb:sync+kb:embed 1회 실행 → `tests/lib/sitemap.test.ts` 임계값 복원. 첫 실행이 수동인 이유: 구 v3 주소 행이 DB 과반(2026-09-26 dry-run 482/544)이라 `kb:sync`의 고아 정리가 플래그 없이는 멈추고, 야간 스케줄 실행은 플래그를 넘기지 못한다(PR #125). 옛 대화 기록의 출처 링크는 이때 끊긴 주소가 된다. **재개 전 남은 판정**: `kb:bootstrap`은 `content/**/*.md` **전체**(현재 draft 367건 = 4종 358 + FAQ 9)를 승격하므로 FAQ 9건(C1)·uncategorized 3건의 공개 여부를 먼저 판정할 것. reviewed_by는 스크립트 상수 `'1차 검토(김헌용)'` 고정이라 2차 검증 결과 반영은 별건(C4 + reviewer 인자 신설 선행).
+- [ ] **C14 법령 최신화**: 법령 최신화(2차 검수 47번: 장애인차별금지법 2025-03-18 개정 제4조 제1항 제7호 신설 등)는 방침대로 내년 갱신. 정본 수정 목록 유형 「법령 갱신」에 기록
+- [ ] **C15 3층 축 이동 주소 대응**: 3층 축(폴더) 이동 54건(2026-09-11 장애유형 판정 변화): URL이 `/{axis}/{slug}`라 공개 뒤에 같은 일이 생기면 구 주소 리다이렉트가 필요하다. 공개 전(C9)에 축 판정을 확정하거나 slug 단독 라우트를 검토
+- [ ] **C16 여러 쪽 표 안의 쪽 주석**: 여러 쪽에 걸친 표 안의 쪽 주석(2026-09-23): 쪽 주석은 쪽이 바뀐 첫 본문 줄 앞에만 들어가고 GFM 표 안에는 둘 수 없어, 표 한 덩어리가 여러 쪽이면 그 안의 쪽은 마커가 없다(최종보고서 161쪽 — 직무분류표 53~79·면담 결과표 228~288·부록 결과표 352~402, 인사관리 5쪽, 중부대 6쪽, 지원인력 11쪽. `docs/regression-2026-09-review50.md` 「남은 빈 쪽」). 3층 `source_page_end`는 넘치지 않고 짧을 뿐이라 검수 지적은 없었다. 필요해지면 표를 자르지 않고 frontmatter에 표별 쪽 범위 목록을 두는 방안을 검토
+- [ ] **C13 홈 메타 설명 공개 건수**: 홈 메타 설명(`src/app/(wiki)/page.tsx` metadata)이 「535개 정책·법령·사례·보조공학 페이지」로 v3 시점 수치를 말한다 — 현재 공개 건수는 50(단체협약 49 + resources 1)이라 검색엔진·공유 카드에 노출되는 값이 사실과 다르다. C9 일괄 공개 판정 뒤 실제 공개 건수로 갱신(공개 여부에 따라 값이 달라지므로 그때 함께)
+- [ ] **C7 2층 v4 확인 필요 잔여**: `정본 수정 목록.csv` 「확인 필요」 5행 + 신청 서식 전사 블록(OCR 유래)·인사관리 도표 2종 대체텍스트. 2·3차 검수가 끝났고 4차 검수는 열지 않아 처리 경로(수행사 인계 또는 위원장 판정)가 미정 — 판정 대기
 
 ## D. iOS TestFlight 준비물 (`docs/IOS_DISTRIBUTION.md` §2)
 
-- D1 앱 아이콘 1024×1024 제작(`.xcassets` 자체 부재) — 디자인 방향은 PROGRESS 미결 결정
-- D2 App Store 스크린샷 6.9" 1세트
-- D3 웹 `/privacy` 본문 작성(placeholder — 심사 필수)
-- D4 웹 `/terms` 본문 작성(placeholder — 권장)
-- D5 Support URL 신설(`/support`) 또는 대표 이메일 등록
-- D6 App Store Connect 앱 레코드 생성 → Archive → TestFlight 내부 테스터(판매자명 결정 후, `docs/IOS_DISTRIBUTION.md` §3)
-- D7 M5 라이브 음성 이식(보류 — dodo-planet Live 오류 수정·검증 후, spec §4.4). 이식 시 Privacy Nutrition Label 음성 데이터 항목 추가
+- [ ] **D1 앱 아이콘**: 앱 아이콘 1024×1024 제작(`.xcassets` 자체 부재) — 디자인 방향은 PROGRESS 미결 결정
+- [ ] **D2 App Store 스크린샷**: App Store 스크린샷 6.9" 1세트
+- [ ] **D3 /privacy 본문**: 웹 `/privacy` 본문 작성(placeholder — 심사 필수)
+- [ ] **D4 /terms 본문**: 웹 `/terms` 본문 작성(placeholder — 권장)
+- [ ] **D5 Support URL**: Support URL 신설(`/support`) 또는 대표 이메일 등록
+- [ ] **D6 TestFlight 내부 테스터**: App Store Connect 앱 레코드 생성 → Archive → TestFlight 내부 테스터(판매자명 결정 후, `docs/IOS_DISTRIBUTION.md` §3)
+- [ ] **D7 M5 라이브 음성 이식**: M5 라이브 음성 이식(보류 — dodo-planet Live 오류 수정·검증 후, spec §4.4). 이식 시 Privacy Nutrition Label 음성 데이터 항목 추가
 
 ## E. 기술 부채 (비차단, 우선순위 낮음)
 
-- E1 채팅 이력: 첨부 이력 미보존(저장은 텍스트만, iOS 이력 복원 시 「첨부: 파일」로만 보임) / 웹 쿠키 세션이 대화 중 만료되면 서버가 익명과 구분하지 못해 `historyUnsaved` 신호가 없다(Bearer만 신호, PR #124 리뷰 P3)
-- E6 웹 감사 보류분(PR #78): ChatUI `aria-relevant`(위원장 실 VoiceOver 판정) / KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션 — 운영 DB 변경이라 C9 재개와 묶어 판단) / 분산 rate limit(외부 저장소 필요, 비용)
-- E8 decompose 범위 경고가 자기+부모 kind만 봄(조상 전체로 넓히면 2층 승격 누락 신호 증가 — 잡음 대비 이득 판정 필요)
-- E10 `tests/migrations/0005_rag_infrastructure.test.ts`가 청크 1000+·문서 535+ 절대 수치를 가정한다. 지금은 통과하지만 C9 재개(고아 482건 삭제) 뒤 깨진다 — 재개 PR에서 불변식 단언으로 교체(PR #122 리뷰 발견)
-- E12 Cache Components(`cacheComponents: true`) 미도입. 루트 레이아웃이 사이드바 SSR 쿠키(D1~D9)를 `<html>` 속성에 쓰려고 Suspense 밖에서 읽어 모든 경로의 프리렌더가 막힌다(`/_not-found`부터 빌드 실패). 루트에 `instant = false`를 걸어도 `/`의 `new Date()` 동기 IO 오류가 남는다. 도입하려면 사이드바 상태 전달 방식 재설계와 동기 IO 이동이 먼저이고, 지금은 전 경로가 이미 동적(ƒ)이라 그 재설계 전에는 이득이 없다. 도입 시 `runtime = 'nodejs'` 7곳·`force-dynamic` 2곳도 지운다(Cache Components가 지원하지 않는다)
+- [ ] **E1 채팅 이력 잔여**: 첨부 이력 미보존(저장은 텍스트만, iOS 이력 복원 시 「첨부: 파일」로만 보임) / 웹 쿠키 세션이 대화 중 만료되면 서버가 익명과 구분하지 못해 `historyUnsaved` 신호가 없다(Bearer만 신호, PR #124 리뷰 P3)
+- [ ] **E6 웹 감사 보류분**(PR #78): KB fixed overlay 탭 잔존(구조 대수술) / retrieval 직렬 3왕복(RPC 마이그레이션 — 운영 DB 변경이라 C9 재개와 묶어 판단) / 분산 rate limit(외부 저장소 필요, 비용)
+- [ ] **E8 decompose 범위 경고 조상 확대**: decompose 범위 경고가 자기+부모 kind만 봄(조상 전체로 넓히면 2층 승격 누락 신호 증가 — 잡음 대비 이득 판정 필요)
+- [ ] **E10 0005 테스트 절대 수치**: `tests/migrations/0005_rag_infrastructure.test.ts`가 청크 1000+·문서 535+ 절대 수치를 가정한다. 지금은 통과하지만 C9 재개(고아 482건 삭제) 뒤 깨진다 — 재개 PR에서 불변식 단언으로 교체(PR #122 리뷰 발견)
+- [ ] **E12 Cache Components 도입**: Cache Components(`cacheComponents: true`) 미도입. 루트 레이아웃이 사이드바 SSR 쿠키(D1~D9)를 `<html>` 속성에 쓰려고 Suspense 밖에서 읽어 모든 경로의 프리렌더가 막힌다(`/_not-found`부터 빌드 실패). 루트에 `instant = false`를 걸어도 `/`의 `new Date()` 동기 IO 오류가 남는다. 도입하려면 사이드바 상태 전달 방식 재설계와 동기 IO 이동이 먼저이고, 지금은 전 경로가 이미 동적(ƒ)이라 그 재설계 전에는 이득이 없다. 도입 시 `runtime = 'nodejs'` 7곳·`force-dynamic` 2곳도 지운다(Cache Components가 지원하지 않는다)
 
-## F. 사업·운영 결정 대기 (판정은 PROGRESS §미결 결정)
+## F. 사업·운영 결정·잔무 (판정은 PROGRESS §미결 결정)
 
-- F1 LICENSE 파일 부재(README "추후 결정"). 공개 저장소(khudt-org)이자 사업 자산이라 저작권 주체(장교조 vs 개인)·라이선스 선택은 위원장 결정 — 워크스페이스 이식 원장 PORTS.md webfortd 행 참조
-- F2 KHUDT Pro 재활성(월 $20) 실행 시점 — 절차 `docs/VERCEL_RECOVERY_PLAN.md`
-- F3 UPSTAGE_API_KEY production 미등록(HWP/HWPX 첨부만 영향, `docs/M7_ENV_SETUP.md`)
+- [ ] **F1 LICENSE**: LICENSE 파일 부재(README 「아직 정해지지 않았습니다(장교조 결정 사항)」). 공개 저장소(khudt-org)이자 사업 자산이라 저작권 주체(장교조 vs 개인)·라이선스 선택은 위원장 결정 — 워크스페이스 이식 원장 PORTS.md webfortd 행 참조
+- [ ] **F2 KHUDT Pro 재활성**: KHUDT Pro 재활성(월 $20) 실행 시점 — 절차 `docs/VERCEL_RECOVERY_PLAN.md`
+- [ ] **F3 UPSTAGE_API_KEY production 등록**(결정이 아니라 위원장 실행 잔무): UPSTAGE_API_KEY production 미등록(HWP/HWPX 첨부만 영향, `docs/M7_ENV_SETUP.md`)
+
+## 장기 과제 (비공식)
+
+Phase 표에는 포함하지 않지만 위원장이 명시한 장기 비전. 도입 시점은 시범 모델 안정화 + 콘텐츠 다양화 후. **별도 plan/spec 작성 금지** — 이 절이 곧 마스터 기록(실시간 음성 채팅은 Phase 7로 승격·완료, CHANGELOG 「이전 이력」).
+
+| 과제 | 내용 | 도입 트리거 |
+|------|------|-------------|
+| **멀티모달 임베딩** | 카드뉴스/영상 시각 자체를 임베딩 (현재는 alt/캡션 텍스트로 우회). Vertex AI `multimodal-embedding` 또는 동급 모델. `document_chunks`에 modality 컬럼 추가 + 인덱스 분리. | "이 그래프와 비슷한 도표 찾아줘" 같은 시각 유사도 검색 요구가 누적되는 시점 |
+| **모바일 PWA 강화** | 홈 화면 설치, 오프라인 캐시(검색 인덱스 일부), 푸시 알림(공지·정책 변경). | 모바일 트래픽 비중 누적 + 정책 변경 알림 수요가 명확해지는 시점 |
+| **위키 페이지 오디오 내레이션 (ElevenLabs Audio Native)** | 위키·atomic 페이지 본문을 AI 내레이션 플레이어로 임베드. ElevenLabs Audio Native는 페이지 URL을 등록하면 본문을 읽어 플레이어 스니펫을 발급하고 본문이 바뀌면 재생성한다. CLI 표면 `elevenlabs audio-native`(CLI v1.1.0, Win·Mac 설치 완료). Phase 7 라이브 음성 채팅과 역할이 다름: Live는 대화형 질의응답, Audio Native는 정적 본문의 낭독. 주 수요층은 저시력·난독·이동 중 청취 사용자이고 스크린리더 사용자에겐 중복이므로 자동 재생 금지 + 명시적 재생 컨트롤 + 페이지당 단일 플레이어로 설계. 크레딧이 페이지 수 × 본문 길이로 소모되므로 도입 전 플랜 한도 산정 선행. | 콘텐츠 정본이 안정화(대규모 재작성 종료)되고 저시력·난독 사용자 낭독 수요가 확인되는 시점 |
 
 ## 폐기 (재조사 방지)
 
 | 항목 | 판정 | 근거 |
 |------|------|------|
-| Phase 4(개정) 소셜 피드 · Phase 5 TTS·alt 자동생성 · Phase 6 다국어·통계 시각화 | 보류(미착수, 트리거 없음) | CLAUDE.md §개발 방향 Phase 표가 원 기록. 2026-06-05 본 사업 분리 이후 webfortd는 레퍼런스 트랙이라 착수 트리거는 위원장 지시 |
-| 멀티모달 임베딩 · 모바일 PWA 강화 | 장기 과제(도입 트리거 미충족) | CLAUDE.md §장기 과제 |
+| Phase 4(개정) 소셜 피드 · Phase 5 TTS·alt 자동생성 · Phase 6 다국어·통계 시각화 | 보류(미착수, 트리거 없음) | CHANGELOG 맨 아래 「이전 이력」의 Phase 표가 원 기록. 2026-06-05 본 사업 분리 이후 webfortd는 레퍼런스 트랙이라 착수 트리거는 위원장 지시 |
 | KB 문서 파일 라우트 신설 | 영구 금지 | Hobby 함수 12개 제한 — `[...kb]` 파서에 추가(CLAUDE.md) |
 | 웹 옴니박스의 iOS 이식(위키 탭 검색어 → 채팅 탭 전달 버튼) | 미채택(위원장 판정 2026-09-04) | iOS는 위키·채팅이 탭으로 갈라져 검색창 중복이 없고, 옴니박스는 탭바 없는 웹이 탭 구조를 대신하는 장치다(gildongmu spec §1: 「옴니박스 = iOS 탭과 개념적으로 등가」). 검색 계약도 다르다 — 웹은 라이브, iOS는 제출형(`performSearch`). 이식하면 탭바와 같은 일을 두 겹으로 한다. 재검토 트리거: 받아쓰기로 말한 문장을 채팅에서 다시 말해야 하는 불편이 실사용에서 누적될 때 |
 
