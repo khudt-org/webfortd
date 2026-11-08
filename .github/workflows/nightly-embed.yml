@@ -35,7 +35,7 @@ jobs:
   sync-and-embed:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
 
       - name: content 변경 확인 (마지막 성공 SHA 대비 · 일시정지 파일)
@@ -58,7 +58,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.gate.outputs.skip == 'false'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
 
       - name: 의존성 설치 + 인덱스 생성
