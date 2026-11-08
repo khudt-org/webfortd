@@ -2,6 +2,12 @@
 
 > 날짜별 변경 이력(마일스톤 경계 갱신). 2026-07-10 이전 이력은 git log와 CLAUDE.md §Phase 진행 요약이 정본(지연 생성 원칙에 따라 이 파일은 iOS 트랙 진입 시점부터 시작).
 
+## 2026-11-08 — 의존성 보안 경고 정리 (PR #130·#131·#134~#136)
+
+- **병합**: 범위 안 갱신·audit fix(#130), Dependabot 설정·`.npmrc` 7일 대기(#131), GitHub Actions 묶음(#134), npm 묶음(#135, `@supabase/ssr` 0.12·`@anthropic-ai/sdk` 0.137 등), vitest 3.2 → 4.1.12(#136). npm audit critical 3·high 7 → critical 0·high 0.
+- **접근성**: axe 4.14가 잡은 자료 상세 다운로드 링크의 label-content-name-mismatch(WCAG 2.5.3)를 시각 텍스트를 덮던 aria-label 제거로 고쳤다(#130).
+- vitest는 5가 아니라 4로 올렸다. 4.1.11부터 vitest 공지가 풀리고 4는 tinypool을 쓰지 않는다.
+
 ## 2026-10-26 — next 16.4.3 보안 업데이트
 
 - **변경**: next 16.2.6 → 16.4.3. 16.4.1 미만 Critical 권고(GHSA-673q-mjm6-r5xr 등)와 Server Actions DoS(GHSA-p3m5-59mp-jv5r) 해소, 편집기 Server Action이 영향권이었다. eslint-config-next는 16.0.10 유지(16.4.3이 끌어오는 react-hooks 7.1.1이 기존 코드에서 오류 13건을 새로 잡는다).
