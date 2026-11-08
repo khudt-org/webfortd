@@ -62,7 +62,6 @@ export default async function LibraryItemPage({ params }: PageProps) {
         href={item.downloadUrl}
         download
         className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        aria-label={`${item.title} PDF 다운로드 (${item.fileSize})`}
       >
         <Download className="h-4 w-4" aria-hidden="true" />
         원본 PDF 다운로드
