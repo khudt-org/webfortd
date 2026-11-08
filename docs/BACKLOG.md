@@ -63,6 +63,14 @@
 - F2 KHUDT Pro 재활성(월 $20) 실행 시점 — 절차 `docs/VERCEL_RECOVERY_PLAN.md`
 - F3 UPSTAGE_API_KEY production 미등록(HWP/HWPX 첨부만 영향, `docs/M7_ENV_SETUP.md`)
 
+## G. 의존성·보안 유지 (절차는 `dependency-upkeep` 스킬)
+
+- G1 [위원장] 조직 보안 설정 켜기: 저장소가 khudt-org 소유라 일반 회원 계정(Engccer)으로는 켤 수 없다. 조직 관리자 계정(khudt01)으로 저장소 Settings → Advanced Security에서 Dependabot alerts·Dependabot security updates·Secret scanning·Push protection을 켠다. 완료 기준: 네 항목 모두 Enabled
+- G4 [로컬] 통합 테스트 Supabase 인증 실패: 실제 DB에 붙는 통합 테스트가 의존성 갱신 전후 모두 인증 오류로 실패한다(`Invalid Compact JWS`, `PGRST303 JWT issued at future`, 0001 RLS 단정). `.env.local`의 Supabase 키 형식(새 publishable/secret 키로 바뀌었는지)과 시계 차이를 확인해 고친다. 완료 기준: 통합 테스트 통과
+- G5 [로컬] eslint-config-next 16.0.10 고정 풀기: 16.4가 가져오는 react-hooks 7.1 규칙 오류 13건을 고친 뒤 버전을 올리고 `.github/dependabot.yml`의 eslint-config-next 제외 줄을 지운다(CHANGELOG 2026-10-26). 완료 기준: 최신판에서 `npm run lint` 오류 0
+- G6 [로컬] 월간 의존성·보안 점검: 다음 회차 2026-12. 완료 기준: 그달 보안 경고·Dependabot PR 정리
+- G7 [위원장] 운영 채팅의 Gemini 키 교체: Vercel Production의 `GOOGLE_GENERATIVE_AI_API_KEY`가 무효라 `/api/chat`이 자료 검색(임베딩)에서 실패해 "자료 검색 중 오류"만 답한다(2026-11-08 실호출, 로그 `API key not valid`). 위원장 전역 `GEMINI_API_KEY`를 교체할 때 이 저장소에는 반영되지 않았다(로컬 `.env.local`은 같은 날 현재 키로 맞춤). Vercel Production·Preview 값과 GitHub Actions 시크릿(야간 임베딩)을 바꾸고 재배포한다. 완료 기준: 운영 `/api/chat`이 답변을 스트리밍하고 로그에 키 오류가 없다
+
 ## 폐기 (재조사 방지)
 
 | 항목 | 판정 | 근거 |
