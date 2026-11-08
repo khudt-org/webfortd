@@ -37,8 +37,8 @@
     "test:all": "npm test && npm run test:components && npm run test:integration"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.79",
-    "@ai-sdk/react": "^3.0.193",
+    "@ai-sdk/google": "^3.0.140",
+    "@ai-sdk/react": "^3.0.323",
     "@google/genai": "^1.52.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -55,14 +55,14 @@
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
-    "@supabase/ssr": "^0.10.3",
+    "@supabase/ssr": "^0.12.7",
     "ai": "^6.0.191",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "flexsearch": "^0.8.212",
     "gray-matter": "^4.0.3",
-    "lucide-react": "^0.555.0",
+    "lucide-react": "^0.577.0",
     "nanoid": "^5.1.11",
     "next": "^16.4.3",
     "next-mdx-remote": "^6.0.0",
@@ -84,7 +84,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.99.0",
+    "@anthropic-ai/sdk": "^0.137.0",
     "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.60.0",
     "@supabase/supabase-js": "^2.106.1",
